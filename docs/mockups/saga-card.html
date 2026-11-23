@@ -1,0 +1,749 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Saga · Systems Field Guide</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Geist+Mono:wght@400;500;600&family=Inter:opsz,wght@14..32,400;14..32,500;14..32,600&display=swap">
+<style>
+/* Layout: terminal-flavoured product editorial — tree index / reading column (~70ch) / TOC, plus a tmux-style status line.
+   Mono for structure & chrome, Inter for long-form reading. Single deliberate dark theme. */
+:root {
+  color-scheme: dark;
+  --bg: #07080a;
+  --bg-raised: #0c0d10;
+  --bg-hover: #14161a;
+  --line: #1a1c21;
+  --line-strong: #272a31;
+  --fg: #eceef2;
+  --fg-muted: #9a9fa8;
+  --fg-faint: #5d626b;
+  --accent: #4ade80;
+  --accent-glow: rgba(74,222,128,.13);
+  --run: #5ee7ff;   /* in-flight state: must read differently from green "done" */
+  --ok: #4ade80;    --ok-soft: rgba(74,222,128,.10);
+  --info: #5ea8ff;  --info-soft: rgba(94,168,255,.12);
+  --warn: #e2b340;  --warn-soft: rgba(226,179,64,.12);
+  --bad: #f2555a;   --bad-soft: rgba(242,85,90,.12);
+  --mono: "Geist Mono", "JetBrains Mono", ui-monospace, "SFMono-Regular", Menlo, monospace;
+  --sans: "Inter", ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
+}
+* { box-sizing: border-box; }
+/* author display rules (e.g. .palette-bg { display: grid }) would otherwise override the hidden attribute */
+[hidden] { display: none !important; }
+html { -webkit-font-smoothing: antialiased; scroll-behavior: smooth; }
+body { margin: 0; background: var(--bg); color: var(--fg); font: 15px/1.7 var(--sans); padding-bottom: calc(30px + env(safe-area-inset-bottom, 0px)); }
+a { color: inherit; text-decoration: none; }
+::selection { background: var(--accent); color: var(--bg); }
+:focus-visible { outline: 1px solid var(--accent); outline-offset: 2px; border-radius: 4px; }
+
+/* ambient: dot grid + hero glow */
+.ambient { position: fixed; inset: 0; pointer-events: none; z-index: 0;
+  background:
+    radial-gradient(600px 320px at 50% -60px, var(--accent-glow), transparent 70%),
+    radial-gradient(circle at 1px 1px, rgba(255,255,255,.05) 1px, transparent 0) 0 0 / 22px 22px;
+  mask-image: linear-gradient(180deg, #000 0, #000 380px, transparent 760px);
+  -webkit-mask-image: linear-gradient(180deg, #000 0, #000 380px, transparent 760px);
+}
+
+/* ---------- top bar ---------- */
+.topbar { position: sticky; top: 0; z-index: 30; background: rgba(7,8,10,.72); backdrop-filter: blur(14px) saturate(140%); border-bottom: 1px solid var(--line); }
+.topbar-inner { max-width: 1340px; margin: 0 auto; height: 54px; display: flex; align-items: center; gap: 28px; padding-inline: 24px; }
+.brand { font: 500 13.5px var(--mono); display: flex; align-items: center; letter-spacing: -.01em; }
+.brand .p { color: var(--accent); margin-right: 8px; }
+.caret { display: inline-block; width: .55em; height: 1.05em; background: var(--accent); vertical-align: -2px; margin-left: 3px; animation: blink 1.1s steps(1) infinite; }
+@keyframes blink { 50% { opacity: 0; } }
+.nav { display: flex; gap: 4px; font: 13px var(--mono); }
+.nav a { padding: 5px 10px; border-radius: 6px; color: var(--fg-faint); transition: color .15s, background .15s; }
+.nav a:hover { color: var(--fg); background: var(--bg-hover); }
+.nav a[aria-current] { color: var(--fg); }
+.nav a[aria-current]::before { content: "./"; color: var(--accent); }
+.search { all: unset; margin-left: auto; display: flex; align-items: center; gap: 10px; width: 280px; height: 32px; padding: 0 10px;
+  background: var(--bg-raised); border: 1px solid var(--line); border-radius: 8px; color: var(--fg-faint); font: 12.5px var(--mono); cursor: pointer; transition: border-color .15s; }
+.search:hover { border-color: var(--line-strong); }
+.search .slash { color: var(--accent); }
+.kbd { margin-left: auto; font: 11px var(--mono); padding: 1px 6px; border: 1px solid var(--line-strong); border-radius: 4px; color: var(--fg-muted); }
+
+/* ---------- shell ---------- */
+.shell { position: relative; z-index: 1; max-width: 1340px; margin: 0 auto; display: grid; grid-template-columns: 260px minmax(0,1fr) 210px; gap: 52px; padding-inline: 24px; }
+
+/* ---------- tree index ---------- */
+.tree { position: sticky; top: 54px; height: calc(100vh - 84px); overflow-y: auto; padding-block: 36px; font: 12.5px/1.95 var(--mono); white-space: pre; color: var(--fg-faint); scrollbar-width: none; }
+.tree .root { color: var(--fg-muted); padding-inline: 6px; }
+.tree a { display: block; color: var(--fg-faint); border-radius: 5px; padding-inline: 6px; transition: color .15s, background .15s; }
+.tree a:hover { color: var(--fg); background: var(--bg-hover); }
+.tree a .g { color: var(--line-strong); }
+.tree a .bar { opacity: .7; }
+.tree a.open { color: var(--fg); }
+.tree a.card { color: var(--fg-muted); }
+.tree a.here { color: var(--fg); background: linear-gradient(90deg, var(--accent-glow), transparent); }
+.tree a.here .mk { color: var(--accent); }
+.tree .st-m { color: var(--ok); } .tree .st-r { color: var(--fg-muted); } .tree .st-u { color: var(--line-strong); }
+
+/* ---------- article ---------- */
+article { padding-block: 44px 120px; max-width: 740px; min-width: 0; }
+.prompt { font: 12.5px var(--mono); color: var(--fg-faint); margin-bottom: 18px; display: flex; flex-wrap: wrap; gap: 0 8px; }
+.prompt .path { color: var(--info); } .prompt .sym { color: var(--accent); } .prompt .cmd { color: var(--fg-muted); }
+h1 { font: 600 clamp(44px, 7vw, 68px)/1 var(--mono); letter-spacing: -.045em; margin: 0 0 22px; display: flex; align-items: center; }
+h1 .typed { display: inline-block; overflow: hidden; white-space: nowrap; width: 4ch; animation: type .55s steps(4) .25s both; }
+h1 .caret { height: .78em; width: .42em; margin-left: 8px; vertical-align: 0; }
+@keyframes type { from { width: 0; } }
+.meta { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 16px; font: 12.5px var(--mono); color: var(--fg-faint); margin-bottom: 34px; }
+.radar { display: inline-flex; align-items: center; gap: 7px; height: 24px; padding: 0 10px; border-radius: 6px; font: 500 11.5px var(--mono); letter-spacing: .06em; white-space: nowrap; }
+.radar::before { content: ""; width: 6px; height: 6px; border-radius: 50%; background: currentColor; box-shadow: 0 0 10px currentColor; }
+.radar.adopt { color: var(--ok); background: var(--ok-soft); }
+.radar.trial { color: var(--info); background: var(--info-soft); }
+.radar.assess { color: var(--warn); background: var(--warn-soft); }
+.radar.hold { color: var(--bad); background: var(--bad-soft); }
+.radar.sm { height: 20px; font-size: 10.5px; padding: 0 7px; }
+.meta .tag::before { content: "#"; color: var(--accent); }
+
+.tldr { position: relative; padding: 20px 22px 20px 24px; margin-bottom: 52px; border-radius: 12px; font-size: 17px; line-height: 1.6;
+  background: linear-gradient(var(--bg-raised), var(--bg-raised)) padding-box, linear-gradient(120deg, rgba(74,222,128,.55), rgba(74,222,128,.05) 45%, rgba(94,168,255,.25)) border-box;
+  border: 1px solid transparent; }
+.tldr .lbl { display: block; font: 500 11.5px var(--mono); color: var(--accent); letter-spacing: .06em; margin-bottom: 6px; }
+.tldr .lbl::before { content: "// "; color: var(--fg-faint); }
+
+h2 { display: flex; align-items: baseline; gap: 10px; font-size: 21px; letter-spacing: -.02em; font-weight: 600; margin: 60px 0 14px; scroll-margin-top: 80px; text-wrap: balance; }
+h2 .hash { font: 500 15px var(--mono); color: var(--accent); opacity: .75; }
+p { margin: 0 0 16px; color: var(--fg-muted); }
+p strong, summary strong { color: var(--fg); font-weight: 500; }
+code { font: 13px var(--mono); padding: 1px 6px; border-radius: 4px; background: var(--bg-hover); color: var(--fg); }
+
+/* load sequence */
+.rise { animation: rise .7s cubic-bezier(.2,.7,.2,1) both; animation-delay: calc(var(--d, 0) * 90ms + 300ms); }
+@keyframes rise { from { opacity: 0; transform: translateY(10px); filter: blur(4px); } }
+
+/* ---------- terminal window ---------- */
+.term { margin: 22px 0 10px; border: 1px solid var(--line-strong); border-radius: 12px; overflow: hidden; background: #090a0c;
+  box-shadow: 0 0 0 1px rgba(0,0,0,.4), 0 30px 80px -30px rgba(74,222,128,.25); }
+.term-bar { display: flex; flex-wrap: wrap; align-items: center; gap: 10px 14px; padding: 9px 12px; border-bottom: 1px solid var(--line); background: var(--bg-raised); font: 12px var(--mono); color: var(--fg-faint); }
+.term-title { display: flex; align-items: center; gap: 8px; }
+.term-title i { width: 7px; height: 7px; border-radius: 50%; background: var(--line-strong); }
+.term-title i.live { background: var(--ok); box-shadow: 0 0 8px var(--ok); animation: pulse 1.4s ease-in-out infinite; }
+@keyframes pulse { 50% { opacity: .35; } }
+.ctrls { margin-left: auto; display: flex; flex-wrap: wrap; gap: 8px; }
+.seg { display: inline-flex; padding: 2px; border-radius: 7px; background: var(--bg); border: 1px solid var(--line); }
+.seg button, .btn { all: unset; cursor: pointer; padding: 3px 9px; border-radius: 5px; font: 12px var(--mono); color: var(--fg-faint); transition: background .15s, color .15s; }
+.seg button:hover, .btn:hover { color: var(--fg); }
+.seg button[aria-pressed="true"] { background: var(--bg-hover); color: var(--fg); box-shadow: inset 0 0 0 1px var(--line-strong); }
+.btn.run { color: var(--bg); background: var(--accent); font-weight: 500; padding: 4px 11px; }
+.btn.run:hover { color: var(--bg); filter: brightness(1.1); }
+.btn:disabled { opacity: .4; cursor: default; }
+.art-wrap { overflow-x: auto; padding: 22px 20px 14px; }
+pre.art { margin: 0; font: 12.5px/1.45 var(--mono); color: var(--fg-faint); width: max-content; }
+pre.art span { transition: color .25s, text-shadow .25s; }
+pre.art .box  { color: var(--fg-muted); }
+pre.art .on   { color: var(--run); text-shadow: 0 0 12px rgba(94,231,255,.6); }
+pre.art .ok   { color: var(--ok); text-shadow: 0 0 10px rgba(74,222,128,.35); }
+pre.art .fail { color: var(--bad); text-shadow: 0 0 12px rgba(242,85,90,.55); }
+pre.art .comp { color: var(--warn); text-shadow: 0 0 12px rgba(226,179,64,.45); }
+.log { height: 172px; overflow-y: auto; border-top: 1px dashed var(--line-strong); padding: 12px 20px; font: 12px/1.75 var(--mono); color: var(--fg-muted); scrollbar-width: thin; }
+.log div { white-space: pre-wrap; animation: logIn .25s ease-out both; }
+@keyframes logIn { from { opacity: 0; transform: translateX(-4px); } }
+.log .ts { color: var(--fg-faint); }
+.lv { display: inline-block; width: 5ch; font-weight: 500; }
+.lv.INFO { color: var(--info); } .lv.OK { color: var(--ok); } .lv.FAIL { color: var(--bad); } .lv.COMP { color: var(--warn); } .lv.EVT { color: var(--run); } .lv.DONE { color: var(--fg); }
+.log .idle { color: var(--fg-faint); }
+.figcap { font-size: 13.5px; color: var(--fg-faint); margin: 10px 2px 0; }
+
+/* ---------- diff block ---------- */
+.diff { border: 1px solid var(--line); border-radius: 12px; overflow: hidden; font: 13px/1.6 var(--mono); background: var(--bg-raised); }
+.diff .hunk { padding: 6px 16px; color: var(--info); background: rgba(94,168,255,.06); border-block: 1px solid var(--line); }
+.diff .hunk:first-child { border-top: 0; }
+.diff .ln { display: grid; grid-template-columns: 2ch 1fr; gap: 10px; padding: 5px 16px; transition: filter .15s; }
+.diff .ln:hover { filter: brightness(1.3); }
+.diff .add { background: rgba(76,195,138,.07); color: #b9e6cf; } .diff .add b { color: var(--ok); }
+.diff .del { background: rgba(242,85,90,.07); color: #f1c0c2; } .diff .del b { color: var(--bad); }
+.diff b { font-weight: 500; }
+
+/* ---------- trade-offs ---------- */
+.table-wrap { overflow-x: auto; border: 1px solid var(--line); border-radius: 12px; }
+table { width: 100%; border-collapse: collapse; font-size: 13.5px; min-width: 560px; }
+th, td { text-align: left; padding: 11px 16px; border-bottom: 1px solid var(--line); vertical-align: top; }
+th { font: 500 11.5px var(--mono); color: var(--fg-faint); letter-spacing: .04em; background: var(--bg-raised); }
+td { color: var(--fg-muted); }
+td:first-child { color: var(--fg); font: 500 12.5px var(--mono); white-space: nowrap; }
+tbody tr { transition: background .15s; }
+tbody tr:hover { background: var(--bg-raised); }
+tr:last-child td { border-bottom: 0; }
+.meter { font: 12px var(--mono); letter-spacing: -.5px; display: block; margin-bottom: 2px; }
+.meter.saga { color: var(--accent); } .meter.alt { color: var(--fg-faint); }
+.meter .e { color: var(--line-strong); }
+.hint { font: 11.5px var(--mono); color: var(--fg-faint); margin: 8px 2px 0; }
+
+/* ---------- ls block ---------- */
+.shell-block { border: 1px solid var(--line); border-radius: 12px; background: var(--bg-raised); padding: 14px 18px; font: 12.5px/1.9 var(--mono); overflow-x: auto; }
+.shell-block .cmdline { color: var(--fg-faint); white-space: nowrap; } .shell-block .sym { color: var(--accent); } .shell-block .c { color: var(--fg-muted); }
+.shell-block .comment { color: var(--warn); opacity: .8; }
+.ls { display: grid; grid-template-columns: max-content 1fr; gap: 0 24px; min-width: 520px; }
+.ls .dir { color: var(--info); } .ls .desc { color: var(--fg-muted); }
+
+/* ---------- pitfalls ---------- */
+.pitfalls { border: 1px solid var(--line); border-radius: 12px; overflow: hidden; }
+.pitfalls details { border-bottom: 1px solid var(--line); }
+.pitfalls details:last-child { border-bottom: 0; }
+.pitfalls summary { list-style: none; cursor: pointer; display: grid; grid-template-columns: 6ch 1fr auto; gap: 10px; align-items: baseline; padding: 12px 16px; font: 13px var(--mono); color: var(--fg); transition: background .15s; }
+.pitfalls summary::-webkit-details-marker { display: none; }
+.pitfalls summary:hover { background: var(--bg-raised); }
+.pitfalls summary .w { color: var(--warn); font-weight: 500; }
+.pitfalls summary .chev { color: var(--fg-faint); transition: transform .2s; }
+.pitfalls details[open] summary .chev { transform: rotate(90deg); color: var(--accent); }
+.pitfalls details p { margin: 0; padding: 0 16px 14px calc(6ch + 26px); font-size: 14px; }
+
+/* ---------- related (spotlight) ---------- */
+.related { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 10px; }
+.rel { position: relative; display: block; border: 1px solid var(--line); border-radius: 12px; padding: 14px 16px; overflow: hidden; transition: border-color .2s, transform .2s; }
+.rel::before { content: ""; position: absolute; inset: 0; opacity: 0; transition: opacity .25s; pointer-events: none;
+  background: radial-gradient(240px circle at var(--mx, 50%) var(--my, 50%), rgba(74,222,128,.14), transparent 60%); }
+.rel:hover { border-color: var(--line-strong); transform: translateY(-2px); }
+.rel:hover::before { opacity: 1; }
+.rel .top { display: flex; justify-content: space-between; align-items: center; gap: 8px; margin-bottom: 6px; }
+.rel b { font-weight: 500; font-size: 14px; }
+.rel .why { display: block; font-size: 13px; color: var(--fg-faint); }
+.rel .cd { display: block; margin-top: 10px; font: 11.5px var(--mono); color: var(--fg-faint); transition: color .2s; }
+.rel:hover .cd { color: var(--accent); }
+
+.deeper { list-style: none; padding: 0; margin: 0; display: grid; gap: 6px; font-size: 14px; }
+.deeper a { display: flex; gap: 12px; align-items: baseline; color: var(--fg-muted); padding: 4px 0; transition: color .15s; }
+.deeper a:hover { color: var(--fg); }
+.deeper .k { font: 11.5px var(--mono); color: var(--accent); width: 9ch; flex: none; }
+.deeper .arr { color: var(--fg-faint); transition: transform .15s; }
+.deeper a:hover .arr { transform: translate(2px, -2px); }
+
+/* ---------- progress + pager ---------- */
+.progress { margin-top: 64px; display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 14px; padding: 16px 18px; border: 1px solid var(--line); border-radius: 12px; background: var(--bg-raised); }
+.progress p { margin: 0; font: 12.5px var(--mono); }
+.chk { display: inline-flex; flex-wrap: wrap; gap: 4px; font: 12.5px var(--mono); }
+.chk button { all: unset; cursor: pointer; padding: 5px 10px; border-radius: 6px; color: var(--fg-faint); transition: color .15s, background .15s; }
+.chk button:hover { color: var(--fg); background: var(--bg-hover); }
+.chk button[aria-pressed="true"] { color: var(--fg); background: var(--bg-hover); }
+.chk button[data-state="mastered"][aria-pressed="true"] { color: var(--ok); background: var(--ok-soft); }
+.pager { margin-top: 12px; display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.pager a { border: 1px solid var(--line); border-radius: 12px; padding: 14px 16px; transition: border-color .15s; font-size: 14px; }
+.pager a:hover { border-color: var(--line-strong); }
+.pager small { display: block; font: 11.5px var(--mono); color: var(--fg-faint); margin-bottom: 2px; }
+.pager .next { text-align: right; }
+
+/* ---------- toc ---------- */
+.toc { position: sticky; top: 54px; padding-block: 44px; align-self: start; font: 12.5px var(--mono); }
+.toc .lbl { color: var(--fg-faint); margin-bottom: 12px; }
+.toc a { display: block; padding: 3px 0 3px 2ch; color: var(--fg-faint); position: relative; transition: color .15s; }
+.toc a:hover { color: var(--fg-muted); }
+.toc a.active { color: var(--fg); }
+.toc a.active::before { content: ">"; position: absolute; left: 0; color: var(--accent); }
+.toc .keys { margin-top: 26px; padding-top: 14px; border-top: 1px solid var(--line); color: var(--fg-faint); display: grid; gap: 6px; font-size: 11.5px; }
+.toc .keys kbd { font: inherit; color: var(--fg-muted); border: 1px solid var(--line-strong); border-radius: 3px; padding: 0 4px; }
+
+/* ---------- status line ---------- */
+.statusline { position: fixed; left: 0; right: 0; bottom: 0; z-index: 40; height: calc(28px + env(safe-area-inset-bottom, 0px)); padding-bottom: env(safe-area-inset-bottom, 0px);
+  display: flex; align-items: stretch; font: 11.5px/28px var(--mono); background: #0b0c0f; border-top: 1px solid var(--line); color: var(--fg-faint); white-space: nowrap; overflow: hidden; }
+.statusline > span { padding-inline: 12px; border-right: 1px solid var(--line); }
+.statusline .mode { background: var(--accent); color: var(--bg); font-weight: 600; letter-spacing: .06em; border: 0; padding-left: max(12px, env(safe-area-inset-left, 0px)); }
+.statusline .ok { color: var(--ok); }
+.statusline .grow { flex: 1; border-right: 0; }
+.statusline .pct { color: var(--fg-muted); border-left: 1px solid var(--line); border-right: 0; padding-right: max(12px, env(safe-area-inset-right, 0px)); }
+
+/* ---------- command palette ---------- */
+.palette-bg { position: fixed; inset: 0; z-index: 60; background: rgba(0,0,0,.55); backdrop-filter: blur(3px); display: grid; place-items: start center; padding: 14vh 16px 0; }
+.palette { width: min(600px, 100%); border: 1px solid var(--line-strong); border-radius: 14px; background: rgba(14,15,19,.96); overflow: hidden; box-shadow: 0 40px 120px -20px rgba(0,0,0,.8), 0 0 0 1px rgba(74,222,128,.08); animation: pop .18s cubic-bezier(.2,.8,.2,1) both; }
+@keyframes pop { from { opacity: 0; transform: translateY(-6px) scale(.98); } }
+.palette-in { display: flex; align-items: center; gap: 10px; padding: 14px 16px; border-bottom: 1px solid var(--line); font: 14px var(--mono); }
+.palette-in span { color: var(--accent); }
+.palette-in input { all: unset; flex: 1; color: var(--fg); font: 14px var(--mono); }
+.palette-in input::placeholder { color: var(--fg-faint); }
+.palette ul { list-style: none; margin: 0; padding: 6px; max-height: 340px; overflow-y: auto; }
+.palette li { display: grid; grid-template-columns: 1fr auto auto; gap: 12px; align-items: center; padding: 8px 10px; border-radius: 8px; cursor: pointer; font-size: 14px; color: var(--fg-muted); }
+.palette li .dom { font: 11.5px var(--mono); color: var(--fg-faint); }
+.palette li[aria-selected="true"] { background: var(--bg-hover); color: var(--fg); }
+.palette li mark { background: none; color: var(--accent); }
+.palette .foot { display: flex; gap: 16px; padding: 8px 14px; border-top: 1px solid var(--line); font: 11px var(--mono); color: var(--fg-faint); }
+.palette .empty { padding: 18px; color: var(--fg-faint); font: 13px var(--mono); list-style: none; }
+
+/* ---------- responsive ---------- */
+@media (max-width: 1200px) { .shell { grid-template-columns: 236px minmax(0,1fr); gap: 40px; } .toc { display: none; } }
+@media (max-width: 880px) {
+  .shell { grid-template-columns: minmax(0,1fr); padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); }
+  .tree, .nav { display: none; }
+  .topbar-inner { padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); gap: 14px; }
+  .search { width: auto; flex: 1; }
+  article { padding-top: 28px; }
+  .pager { grid-template-columns: 1fr; }
+  .statusline .hide-sm { display: none; }
+}
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { animation: none !important; transition: none !important; }
+  html { scroll-behavior: auto; }
+}
+</style>
+</head>
+<body>
+<div class="ambient" aria-hidden="true"></div>
+
+<header class="topbar">
+  <div class="topbar-inner">
+    <a class="brand" href="#"><span class="p">❯</span>field-guide<span class="caret" aria-hidden="true"></span></a>
+    <nav class="nav" aria-label="Primary">
+      <a href="#">path</a>
+      <a href="#" aria-current="page">catalog</a>
+      <a href="#">radar</a>
+      <a href="#">progress</a>
+    </nav>
+    <button class="search" type="button" id="open-palette" aria-label="Search cards">
+      <span class="slash">/</span> search cards, aliases, tags
+      <span class="kbd">⌘K</span>
+    </button>
+  </div>
+</header>
+
+<div class="shell">
+
+  <!-- ===== tree index ===== -->
+  <nav class="tree" aria-label="Catalog">
+<span class="root">~/catalog</span>
+<a href="#"><span class="g">├── </span>01 foundations       <span class="bar">▰▰▰▱</span></a><a href="#"><span class="g">├── </span>02 styles            <span class="bar">▰▰▱▱</span></a><a href="#"><span class="g">├── </span>03 communication     <span class="bar">▰▱▱▱</span></a><a href="#" class="open"><span class="g">├── </span>04 distributed-data  <span class="bar">▰▰▱▱</span></a><a href="#" class="card"><span class="g">│   ├── </span>idempotency         <span class="st-m">✓</span></a><a href="#" class="card"><span class="g">│   ├── </span>outbox              <span class="st-r">·</span></a><a href="#" class="card"><span class="g">│   ├── </span>cdc                 <span class="st-r">·</span></a><a href="#" class="card here" aria-current="page"><span class="g">│   ├── </span>saga                <span class="mk">◀</span></a><a href="#" class="card"><span class="g">│   ├── </span>durable-execution   <span class="st-u">○</span></a><a href="#" class="card"><span class="g">│   ├── </span>cqrs                <span class="st-u">○</span></a><a href="#" class="card"><span class="g">│   └── </span>event-sourcing      <span class="st-u">○</span></a><a href="#"><span class="g">├── </span>05 storage           <span class="bar">▰▱▱▱</span></a><a href="#"><span class="g">├── </span>06 traffic           <span class="bar">▱▱▱▱</span></a><a href="#"><span class="g">├── </span>07 data-platforms    <span class="bar">▱▱▱▱</span></a><a href="#"><span class="g">├── </span>08 reliability-ops   <span class="bar">▱▱▱▱</span></a><a href="#"><span class="g">├── </span>09 security-privacy  <span class="bar">▱▱▱▱</span></a><a href="#"><span class="g">├── </span>10 ai-systems        <span class="bar">▱▱▱▱</span></a><a href="#"><span class="g">└── </span>11 craft             <span class="bar">▱▱▱▱</span></a>
+  </nav>
+
+  <!-- ===== card ===== -->
+  <article>
+    <div class="prompt rise" style="--d:0"><span class="path">~/catalog/04-distributed-data</span><span class="sym">❯</span><span class="cmd">cat saga.md</span></div>
+    <h1><span class="typed">Saga</span><span class="caret" aria-hidden="true"></span></h1>
+    <div class="meta rise" style="--d:2">
+      <span class="radar adopt">ADOPT</span>
+      <span>reviewed 2026-11</span>
+      <span>~6 min</span>
+      <span class="tag">transactions</span><span class="tag">consistency</span><span class="tag">microservices</span>
+    </div>
+
+    <div class="tldr rise" style="--d:3">
+      <span class="lbl">tl;dr</span>
+      Split a business transaction that spans several services into a sequence of local transactions. If a step fails, run compensating actions to undo the steps that already committed. You trade atomicity and isolation for availability and loose coupling.
+    </div>
+
+    <h2 id="problem" class="rise" style="--d:4"><span class="hash">##</span>Problem it solves</h2>
+    <p class="rise" style="--d:5">Placing an order touches <strong>Orders</strong>, <strong>Payments</strong> and <strong>Inventory</strong>, and each service owns its own database. A single ACID transaction can't span them. Distributed two-phase commit (2PC) holds locks across the network, most modern brokers and datastores don't support it, and it fails badly when one participant is slow.</p>
+    <p>A Saga gives up on making all the writes atomic. Instead, it guarantees that the system ends up in a <strong>consistent business state</strong>: either every step completes, or the completed steps are undone semantically.</p>
+
+    <h2 id="how"><span class="hash">##</span>How it works</h2>
+    <p>Each step is a local transaction that commits immediately and triggers the next one. Each step also has a <strong>compensating transaction</strong>, a business-level undo such as <code>refund</code> for <code>charge</code>. Run the simulation to watch the out-of-stock case unwind.</p>
+
+    <div class="term" id="sim">
+      <div class="term-bar">
+        <span class="term-title"><i id="live-dot"></i>saga-run</span>
+        <div class="ctrls">
+          <div class="seg" role="group" aria-label="Coordination style">
+            <button type="button" id="v-orch" data-view="orch" aria-pressed="true">orchestration</button>
+            <button type="button" id="v-chor" data-view="chor" aria-pressed="false">choreography</button>
+          </div>
+          <div class="seg" role="group" aria-label="Scenario">
+            <button type="button" id="s-fail" data-scn="fail" aria-pressed="true">out-of-stock</button>
+            <button type="button" id="s-ok" data-scn="ok" aria-pressed="false">happy-path</button>
+          </div>
+          <button type="button" class="btn run" id="run">▶ run</button>
+        </div>
+      </div>
+      <div class="art-wrap"><pre class="art" id="art" aria-label="ASCII diagram of the saga"></pre></div>
+      <div class="log" id="log" aria-live="polite"></div>
+    </div>
+    <p class="figcap" id="figcap"></p>
+
+    <h2 id="when"><span class="hash">##</span>Use it when / Avoid it when</h2>
+    <div class="diff">
+      <div class="hunk">@@ use it when @@</div>
+      <div class="ln add"><b>+</b><span>A business operation spans services that each own their data</span></div>
+      <div class="ln add"><b>+</b><span>Every step has a meaningful business undo (refund, release, cancel)</span></div>
+      <div class="ln add"><b>+</b><span>The business can tolerate seconds of intermediate state</span></div>
+      <div class="ln add"><b>+</b><span>Availability matters more than strict atomicity</span></div>
+      <div class="hunk">@@ avoid it when @@</div>
+      <div class="ln del"><b>-</b><span>All the data lives in one database: use a local transaction</span></div>
+      <div class="ln del"><b>-</b><span>Readers must never see intermediate state</span></div>
+      <div class="ln del"><b>-</b><span>A step can't be undone (an email that's sent, money that's paid out) and you can't move it to the end</span></div>
+      <div class="ln del"><b>-</b><span>Service boundaries are wrong, and merging services would remove the need</span></div>
+    </div>
+
+    <h2 id="tradeoffs"><span class="hash">##</span>Trade-offs</h2>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>dimension</th><th>saga</th><th>2pc</th></tr></thead>
+        <tbody>
+          <tr><td>consistency</td><td><span class="meter saga">██<span class="e">░░░░</span></span>Eventual, with no isolation between steps</td><td><span class="meter alt">██████</span>Atomic, but blocks if the coordinator fails</td></tr>
+          <tr><td>availability</td><td><span class="meter saga">█████<span class="e">░</span></span>No locks held across services</td><td><span class="meter alt">██<span class="e">░░░░</span></span>Every participant must be up</td></tr>
+          <tr><td>simplicity</td><td><span class="meter saga">██<span class="e">░░░░</span></span>You write compensations, idempotency and timeouts</td><td><span class="meter alt">████<span class="e">░░</span></span>The complexity lives in the infrastructure</td></tr>
+          <tr><td>observability</td><td><span class="meter saga">███<span class="e">░░░</span></span>Needs correlation IDs and saga state tracking</td><td><span class="meter alt">████<span class="e">░░</span></span>One transaction, one outcome</td></tr>
+          <tr><td>cost</td><td><span class="meter saga">███<span class="e">░░░</span></span>A workflow engine or broker, plus engineering time</td><td><span class="meter alt">██<span class="e">░░░░</span></span>Few modern datastores or brokers support it</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <p class="hint">// more █ = better for you</p>
+
+    <h2 id="wild"><span class="hash">##</span>In the wild</h2>
+    <div class="shell-block">
+      <div class="cmdline"><span class="sym">❯</span> <span class="c">ls ~/in-the-wild/saga</span> <span class="comment"># volatile · verified 2026-11</span></div>
+      <div class="ls">
+        <span class="dir">temporal/</span><span class="desc">durable execution: sagas as plain code with retries</span>
+        <span class="dir">aws-step-functions/</span><span class="desc">managed orchestration with catch and compensate states</span>
+        <span class="dir">camunda-zeebe/</span><span class="desc">BPMN orchestration for long-running processes</span>
+        <span class="dir">masstransit/</span><span class="desc">saga state machines on top of a message bus (.NET)</span>
+      </div>
+    </div>
+
+    <h2 id="pitfalls"><span class="hash">##</span>Pitfalls</h2>
+    <div class="pitfalls">
+      <details><summary><span class="w">WARN</span><span>steps that aren't idempotent</span><span class="chev">›</span></summary><p>A message delivered twice charges the customer twice. <strong>Every step and every compensation needs an idempotency key.</strong></p></details>
+      <details><summary><span class="w">WARN</span><span>dual write without an outbox</span><span class="chev">›</span></summary><p>Committing to the database and then publishing the event can lose the event when the process crashes in between. <strong>Write the event to a transactional outbox in the same transaction.</strong></p></details>
+      <details><summary><span class="w">WARN</span><span>compensations that can fail</span><span class="chev">›</span></summary><p>An undo step that fails leaves the system inconsistent. <strong>Retry compensations until they succeed</strong>, and route anything that still fails to a dead-letter queue for manual handling.</p></details>
+      <details><summary><span class="w">WARN</span><span>ignoring isolation anomalies</span><span class="chev">›</span></summary><p>Other requests can read partial state, like an order that's charged but not yet reserved. Use <strong>semantic locks</strong> (for example a <code>PENDING</code> status), or put risky steps last.</p></details>
+      <details><summary><span class="w">WARN</span><span>choreography with too many steps</span><span class="chev">›</span></summary><p>Past roughly four services, nobody can see the whole flow because it exists only across subscriptions. <strong>Switch to orchestration</strong> or a durable execution engine.</p></details>
+    </div>
+
+    <h2 id="related"><span class="hash">##</span>Related</h2>
+    <div class="related">
+      <a class="rel" href="#"><span class="top"><b>Transactional outbox</b><span class="radar sm adopt">ADOPT</span></span><span class="why">Publish events reliably from each step</span><span class="cd">cd ../outbox</span></a>
+      <a class="rel" href="#"><span class="top"><b>Idempotency</b><span class="radar sm adopt">ADOPT</span></span><span class="why">Makes retries and redelivery safe</span><span class="cd">cd ../idempotency</span></a>
+      <a class="rel" href="#"><span class="top"><b>Durable execution</b><span class="radar sm trial">TRIAL</span></span><span class="why">Sagas written as plain code</span><span class="cd">cd ../durable-execution</span></a>
+      <a class="rel" href="#"><span class="top"><b>Two-phase commit</b><span class="radar sm hold">HOLD</span></span><span class="why">The atomic alternative, and why it rarely fits</span><span class="cd">cd ../2pc</span></a>
+    </div>
+
+    <h2 id="deeper"><span class="hash">##</span>Go deeper</h2>
+    <ul class="deeper">
+      <li><a href="https://www.cs.cornell.edu/andru/cs711/2002fa/reading/sagas.pdf"><span class="k">[paper]</span><span>Garcia-Molina &amp; Salem, "Sagas" (1987)</span><span class="arr">↗</span></a></li>
+      <li><a href="https://microservices.io/patterns/data/saga.html"><span class="k">[pattern]</span><span>Chris Richardson, Saga pattern</span><span class="arr">↗</span></a></li>
+      <li><a href="https://learn.microsoft.com/en-us/azure/architecture/patterns/saga"><span class="k">[guide]</span><span>Azure Architecture Center, Saga design pattern</span><span class="arr">↗</span></a></li>
+    </ul>
+
+    <div class="progress">
+      <p id="progress-text">mark your progress on this card</p>
+      <div class="chk" role="group" aria-label="Card progress">
+        <button type="button" id="st-unread" data-state="unread">[ ] not yet</button>
+        <button type="button" id="st-read" data-state="read">[~] read</button>
+        <button type="button" id="st-mastered" data-state="mastered">[x] mastered</button>
+      </div>
+    </div>
+    <nav class="pager" aria-label="Previous and next card">
+      <a href="#"><small>← prev</small>Change data capture</a>
+      <a class="next" href="#"><small>next →</small>Durable execution</a>
+    </nav>
+  </article>
+
+  <!-- ===== toc ===== -->
+  <aside class="toc" aria-label="On this page">
+    <div class="lbl">// on this page</div>
+    <a href="#problem">problem</a>
+    <a href="#how">how-it-works</a>
+    <a href="#when">use-avoid</a>
+    <a href="#tradeoffs">trade-offs</a>
+    <a href="#wild">in-the-wild</a>
+    <a href="#pitfalls">pitfalls</a>
+    <a href="#related">related</a>
+    <a href="#deeper">go-deeper</a>
+    <div class="keys">
+      <span><kbd>j</kbd> <kbd>k</kbd> next / prev section</span>
+      <span><kbd>/</kbd> or <kbd>⌘K</kbd> search</span>
+      <span><kbd>r</kbd> run simulation</span>
+    </div>
+  </aside>
+</div>
+
+<!-- ===== status line ===== -->
+<div class="statusline" aria-hidden="true">
+  <span class="mode">READ</span>
+  <span class="hide-sm">04 distributed-data</span>
+  <span>saga.md</span>
+  <span class="ok hide-sm">● adopt</span>
+  <span class="hide-sm" id="sl-progress">domain 3/7</span>
+  <span class="grow"></span>
+  <span class="hide-sm">utf-8</span>
+  <span class="pct" id="sl-pct">top</span>
+</div>
+
+<!-- ===== palette ===== -->
+<div class="palette-bg" id="palette" hidden>
+  <div class="palette" role="dialog" aria-modal="true" aria-label="Search cards">
+    <div class="palette-in"><span>❯</span><input id="pal-input" type="text" placeholder="saga, outbox, rate limit, rag…" autocomplete="off" spellcheck="false"></div>
+    <ul id="pal-list" role="listbox"></ul>
+    <div class="foot"><span>↑↓ move</span><span>↵ open</span><span>esc close</span></div>
+  </div>
+</div>
+
+<script>
+/* ---------- tiny DOM helpers (textContent only) ---------- */
+function el(tag, cls, text) {
+  const e = document.createElement(tag);
+  if (cls) e.className = cls;
+  if (text != null) e.textContent = text;
+  return e;
+}
+const sp = n => " ".repeat(Math.max(0, n));
+const center = (s, n) => { const l = Math.floor((n - s.length) / 2); return sp(l) + s + sp(n - s.length - l); };
+const padR = (s, n) => s + sp(n - s.length);
+const reduced = () => matchMedia("(prefers-reduced-motion: reduce)").matches;
+
+/* ================= ASCII simulation ================= */
+const W = 18, G = 3, TOT = 3 * W + 2 * G;
+const col = i => i * (W + G);
+
+// item: { c: column, t: text, k: key, cls, slot: { key, text, l, r } }
+function line(items) {
+  items.sort((a, b) => a.c - b.c);
+  const nodes = []; let pos = 0;
+  for (const it of items) {
+    if (it.c > pos) nodes.push(document.createTextNode(sp(it.c - pos)));
+    const span = el("span", it.cls || "");
+    span.dataset.n = it.k;
+    if (it.slot) {
+      const inner = el("span", null, it.slot.text);
+      inner.dataset.s = it.slot.key;
+      span.append(it.slot.l, inner, it.slot.r);
+    } else {
+      span.textContent = it.t;
+    }
+    nodes.push(span);
+    pos = it.c + it.t.length;
+  }
+  return nodes;
+}
+const statusItem = (i, key) => ({ c: col(i), k: key, cls: "box", t: "x".repeat(W),
+  slot: { key, text: padR("○ idle", W - 4), l: "│ ", r: " │" } });
+
+function orchLines() {
+  const L = [], ks = ["t1", "t2", "t3"];
+  L.push(line([{ c: 0, k: "orch", cls: "box", t: "┌" + "─".repeat(TOT - 2) + "┐" }]));
+  L.push(line([{ c: 0, k: "orch", cls: "box", t: "│" + center("order-saga orchestrator", TOT - 2) + "│" }]));
+  const b = [..."└" + "─".repeat(TOT - 2) + "┘"]; [0, 1, 2].forEach(i => b[col(i) + 9] = "┬");
+  L.push(line([{ c: 0, k: "orch", cls: "box", t: b.join("") }]));
+  L.push(line([0, 1, 2].flatMap(i => [{ c: col(i) + 9, k: "a" + (i + 1), t: "│" }, { c: col(i) + 11, k: "a" + (i + 1), t: String(i + 1) }])));
+  L.push(line([0, 1, 2].map(i => ({ c: col(i) + 9, k: "a" + (i + 1), t: "▼" }))));
+  const names = [["T1 orders", "create order"], ["T2 payments", "charge card"], ["T3 inventory", "reserve stock"]];
+  L.push(line([0, 1, 2].map(i => ({ c: col(i), k: ks[i], cls: "box", t: "┌" + "─".repeat(W - 2) + "┐" }))));
+  L.push(line([0, 1, 2].map(i => ({ c: col(i), k: ks[i], cls: "box", t: "│ " + padR(names[i][0], W - 4) + " │" }))));
+  L.push(line([0, 1, 2].map(i => ({ c: col(i), k: ks[i], cls: "box", t: "│ " + padR(names[i][1], W - 4) + " │" }))));
+  L.push(line([0, 1, 2].map(i => statusItem(i, ks[i]))));
+  L.push(line([0, 1, 2].map(i => ({ c: col(i), k: ks[i], cls: "box",
+    t: i < 2 ? "└" + "─".repeat(8) + "┬" + "─".repeat(7) + "┘" : "└" + "─".repeat(W - 2) + "┘" }))));
+  L.push(line([{ c: col(0) + 9, k: "c1", t: "┆" }, { c: col(1) + 9, k: "c2", t: "┆" }]));
+  L.push(line([{ c: col(0) + 9, k: "c1", t: "▼" }, { c: col(1) + 9, k: "c2", t: "▼" }, { c: col(2) + 1, k: "note", t: "◀── undo in reverse" }]));
+  L.push(line([{ c: col(0), k: "c1", t: center("C1 cancel order", W) }, { c: col(1), k: "c2", t: center("C2 refund card", W) }]));
+  return L;
+}
+
+function chorLines() {
+  const L = [], ks = ["s1", "s2", "s3"], names = ["orders", "payments", "inventory"];
+  L.push(line([0, 1, 2].map(i => ({ c: col(i), k: ks[i], cls: "box", t: "┌" + "─".repeat(W - 2) + "┐" }))));
+  L.push(line([0, 1, 2].map(i => ({ c: col(i), k: ks[i], cls: "box", t: "│ " + padR(names[i], W - 4) + " │" }))));
+  L.push(line([0, 1, 2].map(i => statusItem(i, ks[i]))));
+  L.push(line([0, 1, 2].map(i => ({ c: col(i), k: ks[i], cls: "box", t: "└" + "─".repeat(W - 2) + "┘" }))));
+  L.push(line([0, 1, 2].flatMap(i => [{ c: col(i) + 5, k: "p" + (i + 1), t: "│" }, { c: col(i) + 12, k: "r" + (i + 1), t: "▲" }])));
+  L.push(line([0, 1, 2].flatMap(i => [{ c: col(i) + 5, k: "p" + (i + 1), t: "▼" }, { c: col(i) + 12, k: "r" + (i + 1), t: "│" }])));
+  L.push(line([{ c: 0, k: "bus", cls: "box", t: "╔" + "═".repeat(TOT - 2) + "╗" }]));
+  L.push(line([{ c: 0, k: "bus", cls: "box", t: "x".repeat(TOT),
+    slot: { key: "bus", text: center("event bus · idle", TOT - 2), l: "║", r: "║" } }]));
+  L.push(line([{ c: 0, k: "bus", cls: "box", t: "╚" + "═".repeat(TOT - 2) + "╝" }]));
+  L.push(line([{ c: 2, k: "note", t: "▼ publish     ▲ subscribe" }]));
+  return L;
+}
+
+const art = document.getElementById("art"), logEl = document.getElementById("log"), figcap = document.getElementById("figcap");
+const runBtn = document.getElementById("run"), liveDot = document.getElementById("live-dot");
+let view = "orch", scn = "fail", timers = [], t0 = 0;
+
+const captions = {
+  orch: "Orchestration: one coordinator holds the saga state and the compensation order. It's easier to test and observe. The risk is that it turns into a \"god service\" that absorbs business logic.",
+  chor: "Choreography: services react to each other's events and there's no central coordinator. Coupling is low, but the flow exists only across subscriptions, so it gets hard to follow past a handful of steps."
+};
+
+function n(key, cls) { art.querySelectorAll(`[data-n="${key}"]`).forEach(e => e.className = cls); }
+function s(key, text) {
+  const e = art.querySelector(`[data-s="${key}"]`); if (!e) return;
+  e.textContent = key === "bus" ? center(text, TOT - 2) : padR(text, W - 4);
+}
+function log(lv, msg) {
+  const ms = ((performance.now() - t0) / 1000).toFixed(2).padStart(5, "0");
+  const d = el("div");
+  d.append(el("span", "ts", `[${ms}s]`), " ", el("span", "lv " + lv, lv), " " + msg);
+  logEl.append(d); logEl.scrollTop = logEl.scrollHeight;
+}
+
+function render() {
+  timers.forEach(clearTimeout); timers = [];
+  const lines = view === "orch" ? orchLines() : chorLines();
+  const nodes = [];
+  lines.forEach((l, i) => { if (i) nodes.push(document.createTextNode("\n")); nodes.push(...l); });
+  art.replaceChildren(...nodes);
+  figcap.textContent = captions[view];
+  logEl.replaceChildren(
+    el("div", "idle", `$ saga run --mode=${view === "orch" ? "orchestration" : "choreography"} --scenario=${scn === "fail" ? "out-of-stock" : "happy-path"}`),
+    el("div", "idle", "  press ▶ run (or r)")
+  );
+  runBtn.disabled = false; liveDot.className = "";
+}
+
+const SCRIPTS = {
+  orch: {
+    common: [
+      () => { n("orch", "on"); log("INFO", "saga 7f3a started · order #1042"); },
+      () => { n("a1", "on"); n("t1", "on"); s("t1", "◌ running"); log("INFO", "→ T1 orders.createOrder()"); },
+      () => { n("a1", "ok"); n("t1", "ok"); s("t1", "✓ PENDING"); log("OK", "T1 committed · order #1042 PENDING"); },
+      () => { n("a2", "on"); n("t2", "on"); s("t2", "◌ running"); log("INFO", "→ T2 payments.charge($129.00)"); },
+      () => { n("a2", "ok"); n("t2", "ok"); s("t2", "✓ charged"); log("OK", "T2 committed · ch_93k"); },
+      () => { n("a3", "on"); n("t3", "on"); s("t3", "◌ running"); log("INFO", "→ T3 inventory.reserve(sku=KB-87)"); },
+    ],
+    fail: [
+      () => { n("a3", "fail"); n("t3", "fail"); s("t3", "✕ no stock"); n("orch", "fail"); log("FAIL", "T3 rejected · out of stock → compensating"); },
+      () => { n("note", "comp"); n("c2", "comp"); n("t2", "comp"); s("t2", "↺ refunded"); log("COMP", "← C2 payments.refund(ch_93k)"); },
+      () => { n("c1", "comp"); n("t1", "comp"); s("t1", "↺ cancelled"); log("COMP", "← C1 orders.cancel(#1042)"); },
+      () => { n("orch", "comp"); log("DONE", "saga 7f3a compensated · state consistent"); },
+    ],
+    ok: [
+      () => { n("a3", "ok"); n("t3", "ok"); s("t3", "✓ reserved"); log("OK", "T3 committed · KB-87 reserved"); },
+      () => { n("t1", "ok"); s("t1", "✓ CONFIRMED"); n("orch", "ok"); log("DONE", "saga 7f3a completed · order #1042 CONFIRMED"); },
+    ]
+  },
+  chor: {
+    common: [
+      () => { n("s1", "on"); s("s1", "◌ creating"); log("INFO", "orders: create order #1042"); },
+      () => { n("s1", "ok"); s("s1", "✓ PENDING"); n("p1", "on"); n("bus", "on"); s("bus", "▸ OrderCreated #1042 ▸"); log("EVT", "orders → OrderCreated"); },
+      () => { n("p1", "ok"); n("r2", "on"); n("s2", "on"); s("s2", "◌ charging"); log("INFO", "payments ← OrderCreated"); },
+      () => { n("r2", "ok"); n("s2", "ok"); s("s2", "✓ charged"); n("p2", "on"); s("bus", "▸ PaymentCharged ch_93k ▸"); log("EVT", "payments → PaymentCharged"); },
+      () => { n("p2", "ok"); n("r3", "on"); n("s3", "on"); s("s3", "◌ reserving"); log("INFO", "inventory ← PaymentCharged"); },
+    ],
+    fail: [
+      () => { n("r3", "fail"); n("s3", "fail"); s("s3", "✕ no stock"); n("p3", "fail"); n("bus", "fail"); s("bus", "▸ StockReservationFailed ▸"); log("FAIL", "inventory → StockReservationFailed"); },
+      () => { n("r2", "comp"); n("s2", "comp"); s("s2", "↺ refunded"); n("p2", "comp"); n("bus", "comp"); s("bus", "▸ PaymentRefunded ch_93k ▸"); log("COMP", "payments ← StockReservationFailed · refund"); },
+      () => { n("r1", "comp"); n("s1", "comp"); s("s1", "↺ cancelled"); log("COMP", "orders ← PaymentRefunded · cancel #1042"); },
+      () => { n("bus", "box"); s("bus", "event bus · idle"); log("DONE", "compensated · no coordinator involved"); },
+    ],
+    ok: [
+      () => { n("r3", "ok"); n("s3", "ok"); s("s3", "✓ reserved"); n("p3", "ok"); s("bus", "▸ StockReserved KB-87 ▸"); log("EVT", "inventory → StockReserved"); },
+      () => { n("r1", "ok"); n("s1", "ok"); s("s1", "✓ CONFIRMED"); n("bus", "ok"); log("DONE", "order #1042 CONFIRMED"); },
+    ]
+  }
+};
+
+function run() {
+  render();
+  logEl.replaceChildren(); t0 = performance.now();
+  runBtn.disabled = true; liveDot.className = "live";
+  const steps = [...SCRIPTS[view].common, ...SCRIPTS[view][scn]];
+  const gap = reduced() ? 60 : 620;
+  steps.forEach((fn, i) => timers.push(setTimeout(fn, 250 + i * gap)));
+  timers.push(setTimeout(() => { runBtn.disabled = false; runBtn.textContent = "↺ replay"; liveDot.className = ""; }, 250 + steps.length * gap));
+}
+
+function pick(attr, btn) {
+  document.querySelectorAll(`[${attr}]`).forEach(x => x.setAttribute("aria-pressed", String(x === btn)));
+  runBtn.textContent = "▶ run"; render();
+}
+document.querySelectorAll("[data-view]").forEach(b => b.addEventListener("click", () => { view = b.dataset.view; pick("data-view", b); }));
+document.querySelectorAll("[data-scn]").forEach(b => b.addEventListener("click", () => { scn = b.dataset.scn; pick("data-scn", b); }));
+runBtn.addEventListener("click", run);
+render();
+
+// autoplay once when the simulator scrolls into view
+let autoplayed = false;
+new IntersectionObserver((es, o) => {
+  if (es[0].isIntersecting && !autoplayed && !reduced()) { autoplayed = true; run(); o.disconnect(); }
+}, { threshold: .55 }).observe(document.getElementById("sim"));
+
+/* ================= progress ================= */
+const KEY = "progress:saga";
+const ptext = { unread: "mark your progress on this card", read: "read · revisit when you design one", mastered: "mastered · you can defend the trade-offs" };
+function setState(st, save) {
+  document.querySelectorAll(".chk button").forEach(b => b.setAttribute("aria-pressed", String(b.dataset.state === st)));
+  document.getElementById("progress-text").textContent = ptext[st];
+  document.getElementById("sl-progress").textContent = "domain " + (st === "unread" ? 3 : 4) + "/7";
+  if (save) { try { localStorage.setItem(KEY, st); } catch (e) {} }
+}
+let initial = "unread"; try { initial = localStorage.getItem(KEY) || "unread"; } catch (e) {}
+if (!ptext[initial]) initial = "unread";
+setState(initial, false);
+document.querySelectorAll(".chk button").forEach(b => b.addEventListener("click", () => setState(b.dataset.state, true)));
+
+/* ================= related spotlight ================= */
+document.querySelectorAll(".rel").forEach(card => card.addEventListener("pointermove", e => {
+  const r = card.getBoundingClientRect();
+  card.style.setProperty("--mx", (e.clientX - r.left) + "px");
+  card.style.setProperty("--my", (e.clientY - r.top) + "px");
+}));
+
+/* ================= toc + status line ================= */
+const heads = [...document.querySelectorAll("article h2[id]")];
+const tocLinks = [...document.querySelectorAll(".toc a")];
+const pct = document.getElementById("sl-pct");
+function onScroll() {
+  const max = document.documentElement.scrollHeight - innerHeight;
+  const p = max > 0 ? Math.round(scrollY / max * 100) : 0;
+  pct.textContent = p <= 0 ? "top" : p >= 100 ? "bot" : p + "%";
+  let cur = heads[0];
+  heads.forEach(h => { if (h.getBoundingClientRect().top < 120) cur = h; });
+  tocLinks.forEach(l => l.classList.toggle("active", l.getAttribute("href") === "#" + cur.id));
+}
+addEventListener("scroll", onScroll, { passive: true }); onScroll();
+
+/* ================= command palette ================= */
+const CARDS = [
+  ["Saga", "04 distributed-data", "adopt"], ["Transactional outbox", "04 distributed-data", "adopt"], ["Idempotency", "04 distributed-data", "adopt"],
+  ["Change data capture", "04 distributed-data", "adopt"], ["Durable execution", "04 distributed-data", "trial"], ["CQRS", "04 distributed-data", "assess"],
+  ["Event sourcing", "04 distributed-data", "assess"], ["Two-phase commit", "04 distributed-data", "hold"], ["Modular monolith", "02 styles", "adopt"],
+  ["Microservices", "02 styles", "trial"], ["Cell-based architecture", "02 styles", "assess"], ["Rate limiting & backpressure", "06 traffic", "adopt"],
+  ["Sharding & hot keys", "05 storage", "adopt"], ["Caching & invalidation", "05 storage", "adopt"], ["Consistency & PACELC", "01 foundations", "adopt"],
+  ["SLOs & error budgets", "01 foundations", "adopt"], ["Circuit breaker & load shedding", "08 reliability-ops", "adopt"], ["Context engineering & RAG", "10 ai-systems", "adopt"],
+  ["Workflows vs agents", "10 ai-systems", "trial"], ["AI gateway", "10 ai-systems", "trial"], ["MCP & A2A", "10 ai-systems", "assess"], ["ADRs", "11 craft", "adopt"],
+];
+const pal = document.getElementById("palette"), pin = document.getElementById("pal-input"), plist = document.getElementById("pal-list");
+let sel = 0, shown = [];
+
+// subsequence match → array of nodes with <mark> on matched chars, or null
+function fuzzy(q, title) {
+  const ql = q.toLowerCase(); let i = 0; const out = [];
+  for (const ch of title) {
+    if (i < ql.length && ch.toLowerCase() === ql[i]) { out.push(el("mark", null, ch)); i++; }
+    else out.push(document.createTextNode(ch));
+  }
+  return i === ql.length ? out : null;
+}
+function renderPal() {
+  const q = pin.value.trim();
+  shown = CARDS.map(c => ({ c, nodes: q ? fuzzy(q, c[0]) : [document.createTextNode(c[0])] })).filter(x => x.nodes);
+  sel = Math.min(sel, Math.max(0, shown.length - 1));
+  if (!shown.length) { plist.replaceChildren(el("li", "empty", `no cards match "${q}"`)); return; }
+  plist.replaceChildren(...shown.map((x, i) => {
+    const li = el("li");
+    li.setAttribute("role", "option");
+    li.setAttribute("aria-selected", String(i === sel));
+    const name = el("span"); name.append(...x.nodes);
+    li.append(name, el("span", "dom", x.c[1]), el("span", "radar sm " + x.c[2], x.c[2].toUpperCase()));
+    li.addEventListener("click", closePal);
+    return li;
+  }));
+  plist.querySelector('[aria-selected="true"]')?.scrollIntoView({ block: "nearest" });
+}
+function openPal() { pal.hidden = false; pin.value = ""; sel = 0; renderPal(); pin.focus(); }
+function closePal() { pal.hidden = true; }
+document.getElementById("open-palette").addEventListener("click", openPal);
+pal.addEventListener("click", e => { if (e.target === pal) closePal(); });
+pin.addEventListener("input", () => { sel = 0; renderPal(); });
+pin.addEventListener("keydown", e => {
+  if (e.key === "ArrowDown") { e.preventDefault(); sel = Math.min(sel + 1, shown.length - 1); renderPal(); }
+  if (e.key === "ArrowUp") { e.preventDefault(); sel = Math.max(sel - 1, 0); renderPal(); }
+  if (e.key === "Enter") closePal();
+});
+
+/* ================= keyboard ================= */
+addEventListener("keydown", e => {
+  if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === "k") { e.preventDefault(); pal.hidden ? openPal() : closePal(); return; }
+  if (e.key === "Escape" && !pal.hidden) { closePal(); return; }
+  if (!pal.hidden || /input|textarea/i.test(document.activeElement.tagName)) return;
+  if (e.key === "/") { e.preventDefault(); openPal(); }
+  if (e.key === "r" && !runBtn.disabled) run();
+  if (e.key === "j" || e.key === "k") {
+    const target = e.key === "j"
+      ? heads.find(h => h.getBoundingClientRect().top > 90)
+      : [...heads].reverse().find(h => h.getBoundingClientRect().top < 70);
+    target?.scrollIntoView({ behavior: reduced() ? "auto" : "smooth" });
+  }
+});
+</script>
+</body>
+</html>
