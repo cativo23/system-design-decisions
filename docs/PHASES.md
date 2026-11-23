@@ -6,8 +6,8 @@
 
 | Phase | Name | Status | spec-kit feature |
 |---|---|---|---|
-| 0 | Project init + constitution | ⬜ pending | n/a (one-off) |
-| 1 | Walking skeleton | ⬜ pending | |
+| 0 | Project init + constitution | ✅ done | n/a (one-off) |
+| 1 | Walking skeleton | 🟨 in progress: spec + clarify done, spec under review | `specs/001-walking-skeleton` |
 | 2 | Design system & card layout | ⬜ pending | |
 | 3 | Discovery (search, path, radar) | ⬜ pending | |
 | 4 | Progress | ⬜ pending | |
@@ -31,7 +31,7 @@ v1 ships when Phase 7 is done.
 ## How we work (non-negotiable)
 
 ### Spec-Driven Development with spec-kit
-spec-kit is installed as `specify` 1.4.2 and runs as Claude skills.
+spec-kit is installed as `specify` 1.4.3 and runs as Claude skills (`.claude/skills/speckit-*`). The bundled **git extension** is installed: `/speckit-specify` creates the `NNN-…` feature branch. All its auto-commit hooks are off (`.specify/extensions/git/git-config.yml`), so every commit is deliberate. The constitution is v1.0.0 (`.specify/memory/constitution.md`).
 
 - **The constitution is written once** (Phase 0) and updated only on purpose.
 - **Each phase from 1 to 8 is one spec-kit feature.** Run these steps in order, one at a time, and review each artifact before moving on:
