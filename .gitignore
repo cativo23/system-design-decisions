@@ -1,0 +1,5 @@
+# Claude Code local settings may hold machine-specific permissions or credentials
+.claude/settings.local.json
+
+# Spec Kit extension catalog cache (regenerated on demand)
+.specify/extensions/.cache/
