@@ -154,9 +154,10 @@ The future Sync phase switches to Astro's Node adapter (static pages stay preren
 | D10 | Self-host on polaris2, no paid services | Carlos's rule for personal projects | Vercel, Cloudflare, Turso, Supabase |
 | D11 | No backend in v1, but sync-ready | YAGNI now, while the three cheap rules in 6.1 avoid a rewrite later | Building sync now |
 | D12 | spec-kit SDD for code, multi-agent Workflow for content | Code is sequential and shares files. Cards are independent and benefit from parallel draft → verify → review | One approach for everything |
+| D13 | Host `architecture.cativo.dev`, no alias redirect yet | Names the subject, not the working title, so it survives a rename; unambiguous on a `.dev` domain (picked with a naming review on 2026-11-23) | `systems.` (reads as ops), `system-design.` (interview-prep connotation), `arch.` (Arch Linux), `catalog.` (vague); alias redirect deferred (YAGNI) |
 
 ## 8. Open questions
-- **Name and domain** of the site (e.g. a `*.cativo.dev` subdomain).
+- **Name** of the site. The domain is decided: `architecture.cativo.dev` (D13).
 - **Tailwind v4 or plain CSS tokens**: decide in the Phase 2 plan.
 - **License** for the content and code before going public.
 - **Analytics:** none, or something self-hosted later.

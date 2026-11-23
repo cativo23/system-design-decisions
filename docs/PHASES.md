@@ -96,6 +96,7 @@ Out of scope: visual design, search, progress, diagrams.
 **`/speckit-plan` prompt:**
 ```
 Astro (latest stable) scaffolded via the official install guide (npm create astro@latest), MDX and React added with `npx astro add`. Cards live in an Astro content collection with a Zod schema; template/section/related validators as Node scripts with Vitest tests (TDD). Docker multi-stage build → nginx:alpine serving the static dist. GitHub Actions: ci.yml (lint, test, validate, build) and deploy.yml (workflow_dispatch: buildx → Docker Hub tags latest + short-sha → SSH to polaris2 → docker compose pull && up -d → curl health gate). Traefik labels on the space-server_web network, certresolver letsencryptresolver, security-headers@file middleware — same pattern as wizdaa-takehome. No paid services.
+Host: architecture.cativo.dev. Until public launch every response carries `X-Robots-Tag: noindex` (plus a robots meta tag) and the health gate asserts it. The related-id validator reads the master card list from docs/TOPICS.md (written cards link, planned-but-unwritten render as "not yet available").
 ```
 **Done when:** Saga is live at the production URL and CI provably fails on a broken card (shown by a test).
 
@@ -124,6 +125,7 @@ Readers can find any card in seconds and follow a learning path.
 - Learning path page: the recommended reading order across domains.
 - Radar page: all cards grouped by adopt/trial/assess/hold.
 - Keyboard: j/k jump between sections on a card.
+- Home page at the root, in the approved style: a short hero (what the guide is, who it's for), two entry points (start the learning path; search), a grid of the 13 domains with card counts and progress meters, and a freshness strip (recently reviewed cards and radar changes). It replaces the minimal index from Phase 1.
 Works offline from the static build (no search server).
 ```
 **Plan notes:** Pagefind (official docs), and a palette island loaded with `client:idle`.
