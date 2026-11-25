@@ -1,10 +1,14 @@
 import type { CheckFailure } from '../check-failure.ts';
+import type { StaleEntry } from './staleness.ts';
 
 // Output format: contracts/validator-cli.md § Output.
 
 export interface ReportInput {
   failures: CheckFailure[];
   cardCount: number;
+  stale: StaleEntry[];
+  /** YYYY-MM of the run date. */
+  runMonth: string;
 }
 
 function sorted(failures: CheckFailure[]): CheckFailure[] {
@@ -20,11 +24,33 @@ function summary({ failures, cardCount }: ReportInput): string {
 
 export function formatReport(input: ReportInput): string {
   const lines = sorted(input.failures).map((f) => `✗ ${f.file} (${f.id ?? '?'}) ${f.rule}: ${f.detail}`);
-  return [...lines, summary(input)].join('\n');
+  const header = `Staleness report (run date ${input.runMonth}):`;
+  const staleness = input.stale.length
+    ? [header, ...input.stale.map((s) => `  ${s.id}  reviewed ${s.reviewed}  ${s.ageInMonths} months old  ${s.file}`)]
+    : [`${header} no cards need review.`];
+  return [...lines, summary(input), '', ...staleness].join('\n');
 }
 
 export function formatMarkdownReport(input: ReportInput): string {
   const lines = sorted(input.failures).map((f) => `- ✗ \`${f.file}\` (\`${f.id ?? '?'}\`) **${f.rule}**: ${f.detail}`);
   const total = input.failures.length === 0 ? summary(input) : `**${summary(input)}**`;
-  return ['### Card checks', '', ...lines, ...(lines.length ? [''] : []), total].join('\n');
+  const staleness = input.stale.length
+    ? [
+        '| card | reviewed | age | file |',
+        '|---|---|---|---|',
+        ...input.stale.map((s) => `| ${s.id} | ${s.reviewed} | ${s.ageInMonths} months | \`${s.file}\` |`),
+      ]
+    : ['No cards need review.'];
+  return [
+    '### Card checks',
+    '',
+    ...lines,
+    ...(lines.length ? [''] : []),
+    total,
+    '',
+    `### Staleness report (run date ${input.runMonth})`,
+    '',
+    ...staleness,
+    '',
+  ].join('\n');
 }
