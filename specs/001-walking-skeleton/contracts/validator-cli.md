@@ -82,7 +82,7 @@ The CLI is a thin shell around pure functions, which are what the unit tests exe
 - `parseCard(file, source) → { data, sections, failures }`
 - `validateCards(cards, topics, today, cardsDir) → CheckFailure[]` (`cardsDir` names the directory in the `no-cards` failure)
 - `staleCards(cards, today) → StaleEntry[]`
-- `formatReport(failures, stale, today) → string`
+- `formatReport({ failures, cardCount, stale, runMonth }) → string`, plus `formatMarkdownReport` with the same input for the step summary
 
 The CLI is in charge of reading files, printing, and choosing the exit code. A small integration
 test runs it against `tests/fixtures/` to check exit codes 0, 1 and 2.

@@ -149,24 +149,24 @@ guard publishing exist (FR-018). US3 builds on US2's CLI.
 
 ### Tests for User Story 3 ⚠️ (write first, see them fail)
 
-- [ ] T027 [P] [US3] Write failing tests in `tests/unit/staleness.test.ts`:
+- [X] T027 [P] [US3] Write failing tests in `tests/unit/staleness.test.ts`:
   - `ageInMonths` in whole calendar months, per data-model.md § Card (Derived)
   - exactly 12 months is not stale; 13 is stale
   - `staleCards` returns data-model.md StaleEntry.file, StaleEntry.id, StaleEntry.reviewed and StaleEntry.ageInMonths, sorted oldest first
-- [ ] T028 [US3] Add failing tests to `tests/unit/report.test.ts`:
+- [X] T028 [US3] Add failing tests to `tests/unit/report.test.ts`:
   - the staleness section header `Staleness report (run date YYYY-MM):`
   - one line per stale card
   - `no cards need review.` when there are none
   - the Markdown variant
-- [ ] T029 [US3] Add failing cases to `tests/integration/validate-cli.test.ts`:
+- [X] T029 [US3] Add failing cases to `tests/integration/validate-cli.test.ts`:
   - the valid fixtures with `--today 2028-01-15` → exit 0, and stdout lists the stale card with its age
   - with `GITHUB_STEP_SUMMARY` pointing at a temp file, the file receives the Markdown report
 
 ### Implementation for User Story 3
 
-- [ ] T030 [US3] Implement `src/lib/cards/staleness.ts` until T027 passes. It computes data-model.md Card.reviewed age per § Card (Derived) and returns StaleEntry.file, StaleEntry.id, StaleEntry.reviewed and StaleEntry.ageInMonths.
-- [ ] T031 [US3] Extend `src/lib/cards/report.ts` with the staleness section until T028 passes
-- [ ] T032 [US3] Extend `scripts/validate-cards.ts` to always print the staleness report, and to append the Markdown report to `$GITHUB_STEP_SUMMARY` when it's set (research.md R15), until T029 passes. Stale cards never change the exit code (FR-015).
+- [X] T030 [US3] Implement `src/lib/cards/staleness.ts` until T027 passes. It computes data-model.md Card.reviewed age per § Card (Derived) and returns StaleEntry.file, StaleEntry.id, StaleEntry.reviewed and StaleEntry.ageInMonths.
+- [X] T031 [US3] Extend `src/lib/cards/report.ts` with the staleness section until T028 passes
+- [X] T032 [US3] Extend `scripts/validate-cards.ts` to always print the staleness report, and to append the Markdown report to `$GITHUB_STEP_SUMMARY` when it's set (research.md R15), until T029 passes. Stale cards never change the exit code (FR-015).
 
 **Checkpoint**: quickstart.md §3 passes, and US2 tests stay green.
 

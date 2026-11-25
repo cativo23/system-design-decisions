@@ -1,11 +1,12 @@
 // Card validator CLI (contracts/validator-cli.md). A thin shell: it reads
 // files, prints, and picks the exit code; the rules live in src/lib.
-import { readdirSync, readFileSync } from 'node:fs';
+import { appendFileSync, readdirSync, readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { parseArgs } from 'node:util';
 import { parseCard } from '../src/lib/cards/parse-card.ts';
-import { formatReport } from '../src/lib/cards/report.ts';
+import { formatMarkdownReport, formatReport } from '../src/lib/cards/report.ts';
 import { validateCards } from '../src/lib/cards/rules.ts';
+import { staleCards } from '../src/lib/cards/staleness.ts';
 import { parseTopics } from '../src/lib/topics.ts';
 
 const USAGE = 'usage: node scripts/validate-cards.ts [--cards <dir>] [--topics <file>] [--today <YYYY-MM-DD>]';
@@ -54,5 +55,11 @@ const cards = cardFiles.map((name) => {
 });
 const failures = [...topics.failures, ...validateCards(cards, topics.topics, args.today, args.cards)];
 
-console.log(formatReport({ failures, cardCount: cards.length }));
+const report = { failures, cardCount: cards.length, stale: staleCards(cards, args.today), runMonth: args.today.slice(0, 7) };
+
+console.log(formatReport(report));
+// Shown on the GitHub Actions run page, where the owner looks (research R15).
+if (process.env.GITHUB_STEP_SUMMARY) appendFileSync(process.env.GITHUB_STEP_SUMMARY, formatMarkdownReport(report));
+
+// Stale cards never change the exit code (FR-015).
 process.exit(failures.length > 0 ? 1 : 0);
