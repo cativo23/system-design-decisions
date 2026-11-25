@@ -78,7 +78,7 @@ everything (FR-013).
 
 The CLI is a thin shell around pure functions, which are what the unit tests exercise:
 
-- `parseTopics(markdown) → { topics, failures }`
+- `parseTopics(markdown, file) → { topics, failures }` (`file` names the source in `CheckFailure.file`)
 - `parseCard(file, source) → { data, sections, failures }`
 - `validateCards(cards, topics, today) → CheckFailure[]`
 - `staleCards(cards, today) → StaleEntry[]`
