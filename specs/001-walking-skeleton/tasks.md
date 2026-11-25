@@ -180,19 +180,19 @@ guard publishing exist (FR-018). US3 builds on US2's CLI.
 
 ### Tests for User Story 1 ⚠️ (write first, see them fail)
 
-- [ ] T033 [P] [US1] Write failing tests in `tests/unit/related.test.ts` for `resolveRelated(ids, writtenCards, topics)`:
+- [X] T033 [P] [US1] Write failing tests in `tests/unit/related.test.ts` for `resolveRelated(ids, writtenCards, topics)`:
   - an id of a written card → `{ id, href: '/cards/<id>/', title, status, available: true }`, using data-model.md Card.title and Card.status
   - a planned but unwritten id → `{ id, title, available: false }` with no href, using data-model.md TopicEntry.title
   - input order is preserved
   - an empty list returns `[]`
-- [ ] T034 [P] [US1] Write failing tests in `tests/unit/check-build.test.ts` for `checkPage(html, assetSizes)`, exported from `scripts/check-build.ts`, per plan.md § Performance budget and contracts/http-contract.md § Build-output checks:
+- [X] T034 [P] [US1] Write failing tests in `tests/unit/check-build.test.ts` for `checkPage(html, assetSizes)`, exported from `scripts/check-build.ts`, per plan.md § Performance budget and contracts/http-contract.md § Build-output checks:
   - any inline or external `<script>` → fail
   - same-origin CSS (linked + inline) over 2048 bytes → fail
   - HTML over 51200 bytes → fail
   - a missing `<meta name="robots">` containing `noindex` → fail
   - a script, stylesheet, font or image referencing another origin → fail
   - a clean page → `[]`
-- [ ] T035 [P] [US1] Write failing tests in `tests/unit/health-gate.test.ts` for `checkResponse(kind, { status, headers, body }, expectedVersion)`, exported from `scripts/health-gate.ts`, per contracts/http-contract.md § Health gate:
+- [X] T035 [P] [US1] Write failing tests in `tests/unit/health-gate.test.ts` for `checkResponse(kind, { status, headers, body }, expectedVersion)`, exported from `scripts/health-gate.ts`, per contracts/http-contract.md § Health gate:
   - `version`: status ≠ 200, a 3xx, or a trimmed body ≠ the expected SHA → problem
   - `index`: a missing `X-Robots-Tag`, a header without `noindex` (case-insensitive), a missing robots meta, or a missing link to `/cards/saga/` → problem
   - `card`: the same header and meta checks, plus a missing `Saga` H1 → problem
@@ -201,45 +201,45 @@ guard publishing exist (FR-018). US3 builds on US2's CLI.
 
 ### Implementation for User Story 1
 
-- [ ] T036 [US1] Implement `src/lib/cards/related.ts` until T033 passes. It resolves data-model.md Card.related against Card.id/Card.title/Card.status of written cards and TopicEntry.title of planned ones.
-- [ ] T037 [P] [US1] Create `src/layouts/Base.astro`: `<html lang="en">`, charset, viewport, `<title>`, and `<meta name="robots" content="noindex, nofollow">` (FR-021). No styles and no scripts.
-- [ ] T038 [US1] Create `src/pages/index.astro` (FR-020a):
+- [X] T036 [US1] Implement `src/lib/cards/related.ts` until T033 passes. It resolves data-model.md Card.related against Card.id/Card.title/Card.status of written cards and TopicEntry.title of planned ones.
+- [X] T037 [P] [US1] Create `src/layouts/Base.astro`: `<html lang="en">`, charset, viewport, `<title>`, and `<meta name="robots" content="noindex, nofollow">` (FR-021). No styles and no scripts.
+- [X] T038 [US1] Create `src/pages/index.astro` (FR-020a):
   - list every card from the `cards` collection, ordered by domain number (via `src/lib/domains.ts`) and then data-model.md Card.order
   - each entry shows Card.title linked to `/cards/<id>/`, the domain display name, and Card.status in uppercase
-- [ ] T039 [US1] Create `src/components/RelatedCards.astro`. It reads the current card from `Astro.params.id` (research.md R6), loads written cards with `getCollection('cards')`, reads and parses `docs/TOPICS.md` at build time with `parseTopics`, and renders `resolveRelated` as a list:
+- [X] T039 [US1] Create `src/components/RelatedCards.astro`. It reads the current card from `Astro.params.id` (research.md R6), loads written cards with `getCollection('cards')`, reads and parses `docs/TOPICS.md` at build time with `parseTopics`, and renders `resolveRelated` as a list:
   - written cards: a link plus the status
   - unwritten cards: the title plus `(not yet available)`, with no link (FR-011b)
 
   Plain HTML only.
-- [ ] T040 [US1] Create `src/pages/cards/[id].astro` (FR-020):
+- [X] T040 [US1] Create `src/pages/cards/[id].astro` (FR-020):
   - `getStaticPaths` over the `cards` collection
   - an `<h1>` with data-model.md Card.title
   - a metadata list with the domain display name, Card.status (uppercase), Card.reviewed and Card.tags
   - `<Content components={{ RelatedCards }} />`
 
   Done when `npm run build` emits `dist/cards/saga/index.html` with the nine sections in order and three "(not yet available)" entries.
-- [ ] T041 [US1] Implement `scripts/check-build.ts`: a pure `checkPage` until T034 passes, plus a CLI that walks `dist/**/*.html`, resolves same-origin CSS sizes from `dist/`, prints the problems and exits 1 on any. Add the script `"check:build": "node scripts/check-build.ts dist"` to `package.json`.
-- [ ] T042 [US1] Add a `npm run check:build` step after `npm run build` in `.github/workflows/ci.yml`
-- [ ] T043 [P] [US1] Create `nginx/default.conf` per research.md R10 and contracts/http-contract.md:
+- [X] T041 [US1] Implement `scripts/check-build.ts`: a pure `checkPage` until T034 passes, plus a CLI that walks `dist/**/*.html`, resolves same-origin CSS sizes from `dist/`, prints the problems and exits 1 on any. Add the script `"check:build": "node scripts/check-build.ts dist"` to `package.json`.
+- [X] T042 [US1] Add a `npm run check:build` step after `npm run build` in `.github/workflows/ci.yml`
+- [X] T043 [P] [US1] Create `nginx/default.conf` per research.md R10 and contracts/http-contract.md:
   - `listen 8080`, `root /usr/share/nginx/html`, `index index.html`, `absolute_redirect off`
   - server-level `add_header X-Robots-Tag "noindex, nofollow" always;`
   - **no** `location` block with `add_header`
-- [ ] T044 [P] [US1] Create `Dockerfile` and `.dockerignore` per research.md R9:
+- [X] T044 [P] [US1] Create `Dockerfile` and `.dockerignore` per research.md R9:
   - stage `build` on `node:24-alpine`: `npm ci`, `npm run build`, `ARG GIT_SHA`, then write `dist/version.txt` = `$GIT_SHA` + newline
   - stage `runtime` on `nginx/nginx-unprivileged:alpine`: copy `dist/` and `nginx/default.conf`, `EXPOSE 8080`, and a `HEALTHCHECK` using `wget -qO- http://127.0.0.1:8080/`
   - `.dockerignore` excludes `node_modules`, `dist`, `.astro`, `.git`, `specs` and `tests`
-- [ ] T045 [US1] Verify the container locally per quickstart.md §5 (build with `GIT_SHA`; check the headers on 200 and 404, the relative redirect, and `/version.txt`). Fix `nginx/default.conf` or `Dockerfile` until every expectation holds.
-- [ ] T046 [P] [US1] Create `compose.prod.yml` modelled on the existing pattern (research.md R12):
+- [X] T045 [US1] Verify the container locally per quickstart.md §5 (build with `GIT_SHA`; check the headers on 200 and 404, the relative redirect, and `/version.txt`). Fix `nginx/default.conf` or `Dockerfile` until every expectation holds.
+- [X] T046 [P] [US1] Create `compose.prod.yml` modelled on the existing pattern (research.md R12):
   - service `app`, image `${DOCKERHUB_USERNAME:-cativo23}/systems-field-guide:latest`, `restart: unless-stopped`
   - a healthcheck with `wget` on port 8080, and small CPU and memory limits
   - network `space-server_web` (external)
   - Traefik labels: `traefik.enable=true`, a router rule ``Host(`architecture.cativo.dev`)``, `entrypoints=websecure`, `tls.certresolver=letsencryptresolver`, `middlewares=security-headers@file`, service port `8080`, `traefik.docker.network=space-server_web`
-- [ ] T047 [US1] Implement `scripts/health-gate.ts` per contracts/http-contract.md § Health gate: a pure `checkResponse` until T035 passes, plus a CLI.
+- [X] T047 [US1] Implement `scripts/health-gate.ts` per contracts/http-contract.md § Health gate: a pure `checkResponse` until T035 passes, plus a CLI.
   - args (`parseArgs`, strict): `--origin`, `--expect-version`
   - requests: `fetch` with `redirect: 'manual'` and `AbortSignal.timeout(10_000)`
   - rounds every 10 s until all three requests pass or 180 s elapse
   - on success, print `✓ site responds (version <sha>)` with per-request ms; otherwise print `✗ site did not respond within 180s` and the last problems; exit 0 or 1
-- [ ] T048 [US1] Create `.github/workflows/deploy.yml` per research.md R12:
+- [X] T048 [US1] Create `.github/workflows/deploy.yml` per research.md R12:
   - `on: workflow_dispatch`, `concurrency: { group: deploy, cancel-in-progress: false }`, top-level `permissions: contents: read`
   - job `checks`: `uses: ./.github/workflows/ci.yml`
   - job `publish` (`needs: checks`, `if: github.ref == 'refs/heads/main'`, `environment: prod`): compute the short SHA (7 characters); `docker/setup-buildx-action`; `docker/login-action`; `docker/build-push-action` with `push: true`, the tags `latest` and `<short-sha>`, and `build-args: GIT_SHA=<short-sha>`
