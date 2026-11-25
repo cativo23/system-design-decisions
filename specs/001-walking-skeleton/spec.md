@@ -122,8 +122,8 @@ checks, and confirm they pass and the report lists that card with its age.
 - A card that lists itself as related fails the checks.
 - A required section present only as a heading with no content counts as missing.
 - Sections present but in the wrong order fail the checks, since the template fixes the order.
-- Optional metadata lists (tags, aliases, related) may be empty; when present, entries must not
-  be blank or duplicated.
+- The metadata lists (tags, aliases, related) are required fields but may be empty lists; their
+  entries must not be blank or duplicated.
 - If there are no cards at all, the checks fail: an empty guide is never published.
 - If the deploy action is triggered twice in a row, the second run publishes the same version
   again without error.
@@ -184,7 +184,7 @@ checks, and confirm they pass and the report lists that card with its age.
 - **FR-020**: The published site MUST serve the Saga card at a stable address derived from its
   permanent id, showing its title, metadata and all nine sections in template order.
 
-- **FR-020a**: The site's root address MUST show an unstyled index of all published cards, each
+- **FR-020a**: The site's root address MUST show an unstyled index of all written cards, each
   with its title, domain and radar status and a link to the card. With no other page in this
   feature, it is also the natural target for the post-deploy verification.
 

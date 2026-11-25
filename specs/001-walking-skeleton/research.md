@@ -265,5 +265,6 @@ here as **verified** only when it was observed directly.
   wildcard (checked), so no DNS change is needed.
 - **Repo secrets and vars** (R12) and the `prod` environment must be configured before the first
   deploy.
-- **Branch protection** on `main` that requires the CI check is recommended, so a red PR can't
-  merge (FR-016). It's a GitHub setting, not code.
+- **Branch protection** on `main` that requires the CI check is **required**, so a red PR can't
+  merge (FR-016, constitution § Quality gates). It's a GitHub setting, not code. On the free plan
+  it's only available for public repositories.

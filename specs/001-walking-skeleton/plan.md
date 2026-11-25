@@ -204,7 +204,7 @@ small pure cores inside the script file and export them for tests, because nothi
    - `health-gate.ts` (TDD), deploy workflow
    - prerequisites: GitHub repo, secrets, `prod` environment (owner-confirmed outward actions)
    - first deploy
-6. **Polish:** quickstart run-through, TOPICS.md `saga` → `[x]` once live, docs status.
+6. **Polish:** quickstart run-through, TOPICS.md `saga` note updated (it stays `[~]` until the Phase 6 review checklist), docs status.
 
 US2 comes before US1's deploy on purpose. Nothing may be published until the checks that guard
 publishing exist (FR-018).

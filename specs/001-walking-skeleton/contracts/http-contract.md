@@ -8,7 +8,7 @@ middleware).
 
 | Path | Content | Requirement |
 |---|---|---|
-| `/` | Unstyled index of published cards: title (linked to the card), domain display name, radar status. Ordered by domain number, then `order`. | FR-020a |
+| `/` | Unstyled index of written cards: title (linked to the card), domain display name, radar status. Ordered by domain number, then `order`. | FR-020a |
 | `/cards/<id>/` | Card page: H1 title; domain, radar status, reviewed month, tags; then the nine sections in template order. | FR-020, FR-011b |
 | `/version.txt` | The short commit SHA (7 characters) the image was built from, followed by a newline. | FR-019 (proves the new version is live) |
 | anything else | nginx 404 | n/a |
