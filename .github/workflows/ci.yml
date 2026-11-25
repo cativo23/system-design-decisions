@@ -26,3 +26,5 @@ jobs:
       # Before the build: it reports every card failure, Astro reports only the first (research R3).
       - run: npm run validate
       - run: npm run build
+      # Budget and noindex over the built pages (plan.md § Performance budget).
+      - run: npm run check:build

@@ -12,7 +12,8 @@
     "astro": "astro",
     "test": "vitest run",
     "lint": "eslint . && astro check",
-    "validate": "node scripts/validate-cards.ts"
+    "validate": "node scripts/validate-cards.ts",
+    "check:build": "node scripts/check-build.ts dist"
   },
   "dependencies": {
     "@astrojs/markdown-satteri": "^0.4.10",
