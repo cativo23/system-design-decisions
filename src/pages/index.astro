@@ -1,16 +1,25 @@
 ---
+import { getCollection } from 'astro:content';
+import Base from '../layouts/Base.astro';
+import { domainBySlug } from '../lib/domains.ts';
+
+// Learning-path order: domain number, then the card's order within it (FR-020a).
+const cards = (await getCollection('cards'))
+  .map((card) => ({ ...card.data, domain: domainBySlug(card.data.domain)! }))
+  .sort((a, b) => a.domain.number - b.domain.number || a.order - b.order);
 ---
 
-<html lang="en">
-	<head>
-		<meta charset="utf-8" />
-		<link rel="icon" type="image/svg+xml" href="/favicon.svg" />
-		<link rel="icon" href="/favicon.ico" />
-		<meta name="viewport" content="width=device-width" />
-		<meta name="generator" content={Astro.generator} />
-		<title>Astro</title>
-	</head>
-	<body>
-		<h1>Astro</h1>
-	</body>
-</html>
+<Base title="Systems Field Guide">
+  <main>
+    <h1>Systems Field Guide</h1>
+    <ul>
+      {
+        cards.map((card) => (
+          <li>
+            <a href={`/cards/${card.id}/`}>{card.title}</a> · {card.domain.name} · {card.status.toUpperCase()}
+          </li>
+        ))
+      }
+    </ul>
+  </main>
+</Base>

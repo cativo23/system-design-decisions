@@ -1,0 +1,28 @@
+---
+// Rendered inside a card's "## Related" section (research.md R6). The ids come
+// from the card's frontmatter, so the body never repeats them.
+import { getCollection, getEntry } from 'astro:content';
+import { resolveRelated } from '../lib/cards/related.ts';
+import { parseTopics } from '../lib/topics.ts';
+import topicsMarkdown from '../../docs/TOPICS.md?raw';
+
+const card = await getEntry('cards', Astro.params.id!);
+const written = (await getCollection('cards')).map((c) => c.data);
+// Topic list errors are the validator's job; the page only needs the titles.
+const { topics } = parseTopics(topicsMarkdown, 'docs/TOPICS.md');
+const items = resolveRelated(card?.data.related ?? [], written, topics);
+---
+
+<ul>
+  {
+    items.map((item) =>
+      item.available ? (
+        <li>
+          <a href={item.href}>{item.title}</a> · {item.status.toUpperCase()}
+        </li>
+      ) : (
+        <li>{item.title} (not yet available)</li>
+      ),
+    )
+  }
+</ul>
