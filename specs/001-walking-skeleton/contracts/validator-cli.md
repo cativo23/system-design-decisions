@@ -80,7 +80,7 @@ The CLI is a thin shell around pure functions, which are what the unit tests exe
 
 - `parseTopics(markdown, file) → { topics, failures }` (`file` names the source in `CheckFailure.file`)
 - `parseCard(file, source) → { data, sections, failures }`
-- `validateCards(cards, topics, today) → CheckFailure[]`
+- `validateCards(cards, topics, today, cardsDir) → CheckFailure[]` (`cardsDir` names the directory in the `no-cards` failure)
 - `staleCards(cards, today) → StaleEntry[]`
 - `formatReport(failures, stale, today) → string`
 

@@ -85,19 +85,19 @@ guard publishing exist (FR-018). US3 builds on US2's CLI.
 
 ### Tests for User Story 2 ⚠️ (write first, see them fail)
 
-- [ ] T015 [P] [US2] Create the fixtures:
+- [X] T015 [P] [US2] Create the fixtures:
   - `tests/fixtures/valid/TOPICS.md` (a few topics across two domains, including one planned-but-unwritten id)
   - `tests/fixtures/valid/cards/` (one complete valid card whose `related` includes the planned-but-unwritten id)
   - `tests/fixtures/broken/TOPICS.md`
   - `tests/fixtures/broken/cards/`: one card file per rule code in contracts/validator-cli.md § Rule codes, except `no-cards` and `topics-invalid`, which have dedicated unit tests. Each file is named after its rule, e.g. `section-order.mdx`.
-- [ ] T016 [P] [US2] Write failing tests in `tests/unit/parse-card.test.ts` for `parseCard(file, source)`:
+- [X] T016 [P] [US2] Write failing tests in `tests/unit/parse-card.test.ts` for `parseCard(file, source)`:
   - splitting the frontmatter on its `---` fences
   - YAML syntax errors and missing frontmatter → `frontmatter-invalid`
   - the `##` heading scan ignores headings inside ``` and `~~~` fences
   - a section with only blank lines or only a `###` heading counts as empty
   - `###` headings are allowed
   - Trade-offs cost row detection: first cell `cost`, case-insensitive, ignoring `**`, `_` and backticks; the header row doesn't count
-- [ ] T017 [P] [US2] Write failing tests in `tests/unit/rules.test.ts` for the per-card rules of `validateCards(cards, topics, today)`. Each test mutates the valid fixture once:
+- [X] T017 [P] [US2] Write failing tests in `tests/unit/rules.test.ts` for the per-card rules of `validateCards(cards, topics, today)`. Each test mutates the valid fixture once:
   - `metadata-missing` for every required field in data-model.md § Card
   - `metadata-invalid` for data-model.md Card.id, Card.domain, Card.status, Card.reviewed (malformed), Card.order, and blank or duplicate entries in Card.tags, Card.aliases, Card.related
   - `section-missing` for each of the nine sections, then `section-empty`, `section-order`, `section-duplicate`, `section-unknown`
@@ -105,7 +105,7 @@ guard publishing exist (FR-018). US3 builds on US2's CLI.
   - a card with invalid frontmatter is still checked for body rules
 
   Assert that each failure carries data-model.md CheckFailure.file, CheckFailure.id, CheckFailure.rule and CheckFailure.detail, and that the detail names the field, section or allowed values.
-- [ ] T018 [P] [US2] Write failing tests in `tests/unit/cross-card-rules.test.ts` for the cross-card rules and the date rule of `validateCards`:
+- [X] T018 [P] [US2] Write failing tests in `tests/unit/cross-card-rules.test.ts` for the cross-card rules and the date rule of `validateCards`:
   - `related-unknown` (an id in neither the cards nor the topics)
   - a related id that's planned but unwritten **passes**
   - `related-self`
@@ -115,12 +115,12 @@ guard publishing exist (FR-018). US3 builds on US2's CLI.
   - Card.reviewed in the future relative to the injected `today` → `metadata-invalid`
   - the current month is valid
   - several cards with several defects → all defects returned in one call (FR-013)
-- [ ] T019 [P] [US2] Write failing tests in `tests/unit/report.test.ts` for the failure part of `formatReport`:
+- [X] T019 [P] [US2] Write failing tests in `tests/unit/report.test.ts` for the failure part of `formatReport`:
   - the line format `✗ <file> (<id>) <rule>: <detail>`, with `(?)` when the id is unknown
   - stable ordering by file, then rule
   - the summary lines `N failure(s) in M card(s)` and `✓ K card(s) valid`
   - the Markdown variant for the step summary
-- [ ] T020 [P] [US2] Write failing tests in `tests/integration/validate-cli.test.ts` that spawn `node scripts/validate-cards.ts` with `--today 2026-11-23`:
+- [X] T020 [P] [US2] Write failing tests in `tests/integration/validate-cli.test.ts` that spawn `node scripts/validate-cards.ts` with `--today 2026-11-23`:
   - the valid fixtures → exit 0
   - the broken fixtures → exit 1, with every rule code from T015 in stdout in a single run
   - a missing `--topics` file → exit 2
@@ -130,12 +130,12 @@ guard publishing exist (FR-018). US3 builds on US2's CLI.
 
 ### Implementation for User Story 2
 
-- [ ] T021 [US2] Implement `src/lib/cards/parse-card.ts` until T016 passes
-- [ ] T022 [US2] Implement the per-card rules in `src/lib/cards/rules.ts` (using the schema from T011, plus the section and cost-row results from T021) until T017 passes. Every failure is a data-model.md CheckFailure (CheckFailure.file, CheckFailure.id, CheckFailure.rule, CheckFailure.detail).
-- [ ] T023 [US2] Add the cross-card rules and the future-month rule to `src/lib/cards/rules.ts`, using `parseTopics` from T012, until T018 passes. They check data-model.md Card.id (unique, in TopicEntry.id), Card.related (known, not self) and Card.reviewed (not after the run month).
-- [ ] T024 [US2] Implement the failure formatting in `src/lib/cards/report.ts` until T019 passes. Each line renders data-model.md CheckFailure.file, CheckFailure.id, CheckFailure.rule and CheckFailure.detail.
-- [ ] T025 [US2] Implement the CLI `scripts/validate-cards.ts` per contracts/validator-cli.md. Use `node:util` `parseArgs` in strict mode with `--cards`, `--topics` and `--today` and the documented defaults. Read `*.mdx` non-recursively. Exit 0, 1 or 2. Add the script `"validate": "node scripts/validate-cards.ts"`. Done when T020 passes and `npm run validate` passes on the real Saga card.
-- [ ] T026 [US2] Add a `npm run validate` step to `.github/workflows/ci.yml` between `npm test` and `npm run build` (research.md R11)
+- [X] T021 [US2] Implement `src/lib/cards/parse-card.ts` until T016 passes
+- [X] T022 [US2] Implement the per-card rules in `src/lib/cards/rules.ts` (using the schema from T011, plus the section and cost-row results from T021) until T017 passes. Every failure is a data-model.md CheckFailure (CheckFailure.file, CheckFailure.id, CheckFailure.rule, CheckFailure.detail).
+- [X] T023 [US2] Add the cross-card rules and the future-month rule to `src/lib/cards/rules.ts`, using `parseTopics` from T012, until T018 passes. They check data-model.md Card.id (unique, in TopicEntry.id), Card.related (known, not self) and Card.reviewed (not after the run month).
+- [X] T024 [US2] Implement the failure formatting in `src/lib/cards/report.ts` until T019 passes. Each line renders data-model.md CheckFailure.file, CheckFailure.id, CheckFailure.rule and CheckFailure.detail.
+- [X] T025 [US2] Implement the CLI `scripts/validate-cards.ts` per contracts/validator-cli.md. Use `node:util` `parseArgs` in strict mode with `--cards`, `--topics` and `--today` and the documented defaults. Read `*.mdx` non-recursively. Exit 0, 1 or 2. Add the script `"validate": "node scripts/validate-cards.ts"`. Done when T020 passes and `npm run validate` passes on the real Saga card.
+- [X] T026 [US2] Add a `npm run validate` step to `.github/workflows/ci.yml` between `npm test` and `npm run build` (research.md R11)
 
 **Checkpoint**: quickstart.md §1 and §2 pass. US2 is complete and independently testable.
 
