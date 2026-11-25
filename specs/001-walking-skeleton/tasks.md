@@ -45,8 +45,8 @@ guard publishing exist (FR-018). US3 builds on US2's CLI.
 
 **⚠️ CRITICAL**: no user story work starts until this phase is complete.
 
-- [ ] T007 [P] Write failing tests in `tests/unit/domains.test.ts`: exactly 13 domains in learning-path order, each with the number, slug and display name from data-model.md § Domain. Lookup by slug returns the number and name, and lookup by number returns the slug.
-- [ ] T008 [P] Write failing tests in `tests/unit/schema.test.ts` for the shared metadata schema. Cover each constrained field:
+- [X] T007 [P] Write failing tests in `tests/unit/domains.test.ts`: exactly 13 domains in learning-path order, each with the number, slug and display name from data-model.md § Domain. Lookup by slug returns the number and name, and lookup by number returns the slug.
+- [X] T008 [P] Write failing tests in `tests/unit/schema.test.ts` for the shared metadata schema. Cover each constrained field:
   - data-model.md Card.id (slug pattern)
   - Card.title (non-blank)
   - Card.domain (one of the 13 slugs)
@@ -56,15 +56,15 @@ guard publishing exist (FR-018). US3 builds on US2's CLI.
   - Card.tags, Card.aliases, Card.related (required arrays that may be empty, with no blank or duplicate entries)
 
   Each issue must expose the field path and a message naming the allowed values or format.
-- [ ] T009 [P] Write failing tests in `tests/unit/topics.test.ts` for `parseTopics(markdown)` per contracts/topics-format.md:
+- [X] T009 [P] Write failing tests in `tests/unit/topics.test.ts` for `parseTopics(markdown)` per contracts/topics-format.md:
   - extracting data-model.md TopicEntry.id, TopicEntry.title (cut at the first ` · ` or `. `), TopicEntry.domainNumber and TopicEntry.state (from `[ ]`, `[~]` or `[x]`)
   - every parse error (no topics, duplicate id, topic before any heading, heading number outside 01–13), reported as `topics-invalid` failures
   - parsing the real `docs/TOPICS.md` yields no failures and contains `saga` (title `Saga (2PC covered inside)`, domain 5), `outbox-cdc`, `idempotency` and `durable-execution`. Don't assert a total count, since the list changes over time.
-- [ ] T010 Implement `src/lib/domains.ts` until T007 passes
-- [ ] T011 Implement `src/lib/cards/schema.ts` (import `z` from `astro/zod`; erasable TypeScript only) until T008 passes. It enforces data-model.md Card.id, Card.title, Card.domain, Card.order, Card.status, Card.reviewed (format only), Card.tags, Card.aliases and Card.related. Depends on T010.
-- [ ] T012 [P] Implement `src/lib/topics.ts` until T009 passes. It returns data-model.md TopicEntry.id, TopicEntry.title, TopicEntry.domainNumber and TopicEntry.state.
-- [ ] T013 Create `src/content.config.ts` per research.md R3. Define the `cards` collection with `glob({ pattern: '*.mdx', base: './src/content/cards', generateId: ({ data }) => data.id })` and the schema from `src/lib/cards/schema.ts`. Depends on T011.
-- [ ] T014 Author `src/content/cards/saga.mdx` per research.md R16 and contracts/card-format.md. Port the approved text from `docs/mockups/saga-card.html`:
+- [X] T010 Implement `src/lib/domains.ts` until T007 passes
+- [X] T011 Implement `src/lib/cards/schema.ts` (import `z` from `astro/zod`; erasable TypeScript only) until T008 passes. It enforces data-model.md Card.id, Card.title, Card.domain, Card.order, Card.status, Card.reviewed (format only), Card.tags, Card.aliases and Card.related. Depends on T010.
+- [X] T012 [P] Implement `src/lib/topics.ts` until T009 passes. It returns data-model.md TopicEntry.id, TopicEntry.title, TopicEntry.domainNumber and TopicEntry.state.
+- [X] T013 Create `src/content.config.ts` per research.md R3. Define the `cards` collection with `glob({ pattern: '*.mdx', base: './src/content/cards', generateId: ({ data }) => data.id })` and the schema from `src/lib/cards/schema.ts`. Depends on T011.
+- [X] T014 Author `src/content/cards/saga.mdx` per research.md R16 and contracts/card-format.md. Port the approved text from `docs/mockups/saga-card.html`:
   - frontmatter `id: saga`, `domain: distributed-data`, `order: 3`, `status: adopt`, `reviewed: 2026-11`
   - tags `transactions`, `consistency`, `microservices`; aliases `distributed transactions`, `compensating transactions`
   - `related: [outbox-cdc, idempotency, durable-execution]`
