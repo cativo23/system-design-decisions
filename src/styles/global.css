@@ -10,15 +10,15 @@ body {
   margin: 0;
   background: var(--bg);
   color: var(--fg);
-  font: 15px/1.7 var(--sans);
-  padding-bottom: calc(30px + env(safe-area-inset-bottom, 0px));
+  font: 0.9375rem/1.7 var(--sans);
+  padding-bottom: calc(1.875rem + env(safe-area-inset-bottom, 0px));
 }
 
 a { color: inherit; text-decoration: none; }
 ::selection { background: var(--accent); color: var(--bg); }
 :focus-visible { outline: 1px solid var(--accent); outline-offset: 2px; border-radius: 4px; }
 
-.skip-link { position: fixed; top: 8px; left: 8px; z-index: 100; padding: 10px 14px; border-radius: 8px; background: var(--accent); color: var(--bg); font: 500 13px var(--mono); transform: translateY(-200%); }
+.skip-link { position: fixed; top: 8px; left: 8px; z-index: 100; padding: 10px 14px; border-radius: 8px; background: var(--accent); color: var(--bg); font: 500 0.8125rem var(--mono); transform: translateY(-200%); }
 .skip-link:focus { transform: none; outline-offset: 2px; }
 /* <main> is focusable only so the skip link can move focus there; it needs no ring of its own. */
 main:focus { outline: none; }
