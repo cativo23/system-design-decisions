@@ -256,3 +256,14 @@ Task: "Write failing tests in tests/unit/menu.test.ts"       # T018
 - Commit after each task or logical group, Conventional Commits, one concern each (for example `feat(layout): add meter and domain meter`).
 - Never commit the scratch second card from T058.
 - Constrained fields are defined only in data-model.md; the tasks above cite them rather than repeating the rules.
+
+---
+
+## Phase 9: Convergence
+
+**Purpose**: gaps found by `/speckit-converge` (first pass, 2026-11-25). Test first where the task has logic: T077 before T078.
+
+- [ ] T077 Extend `tests/unit/contrast.test.ts` so it fails on the real gaps, per SC-007 and the T007 test list (partial): assert the status-line text colour with `--fg-faint` (the current test skips that pair), the diff text colours used in `src/styles/card.css` (`#b9e6cf` and `#f1c0c2` on their tints, `--ok`/`--bad` signs, the `--info` hunk header on its tint), and any text token that `card.css` or `shell.css` draws with `opacity` below 1 (composite the opacity over its surface first). It should fail on the tree's domain meter. Run it and see it fail.
+- [ ] T078 Make the tree's domain meter reach 4.5:1 per FR-025 / SC-007 (partial): in `src/styles/shell.css`, `.tree .bar` is `--fg-faint` at `opacity: 0.7`, which composites to about 3.0:1 on `--bg`. Remove the opacity (the colour already passes at 5.1:1) or lighten the colour, keep the meter below the domain name in emphasis by colour role rather than by fading, and make T077 green.
+- [ ] T079 Track the pointer for the Related spotlight per FR-031 / T040 (partial): the Related cards style a radial glow from `--mx`/`--my`, which nothing sets, so the glow stays centred. In `src/scripts/shell.ts` set those two properties on `.rel` from `pointermove` (a delegated listener, written as custom properties only, no HTML strings); it must not run under reduced motion beyond what the single reduced-motion rule already silences, and it must not add JS over the 12 KB budget (check `check:build`).
+- [ ] T080 Give the Go deeper external-link cue a text form for assistive technology per FR-019 and constitution V (partial): `src/components/Source.astro` marks `↗` `aria-hidden`, so a screen-reader user gets no cue that the link leaves the site. Add visually hidden text (for example "opens an external site") inside the link using the existing `.sr-only` class, keep the arrow decorative, and keep `source-malformed` and the fixtures unchanged.
