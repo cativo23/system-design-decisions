@@ -1,0 +1,36 @@
+# Runs on polaris2 behind Traefik (research.md R12). Usage, from deploy.yml:
+#   docker compose -f compose.prod.yml pull
+#   docker compose -f compose.prod.yml up -d --remove-orphans
+
+services:
+  app:
+    # The image is public, so the server pulls it without a registry login.
+    image: ${DOCKERHUB_USERNAME:-cativo23}/system-design-decisions:latest
+    restart: unless-stopped
+    # No host port bindings: Traefik reaches the container over space-server_web.
+    healthcheck:
+      # 127.0.0.1, not localhost: nginx listens on IPv4 only.
+      test: ["CMD", "wget", "-qO-", "http://127.0.0.1:8080/"]
+      interval: 30s
+      timeout: 3s
+      retries: 3
+      start_period: 5s
+    networks:
+      - space-server_web
+    deploy:
+      resources:
+        limits:
+          cpus: "0.25"
+          memory: 64M
+    labels:
+      - "traefik.enable=true"
+      - "traefik.docker.network=space-server_web"
+      - "traefik.http.routers.system-design-decisions.rule=Host(`architecture.cativo.dev`)"
+      - "traefik.http.routers.system-design-decisions.entrypoints=websecure"
+      - "traefik.http.routers.system-design-decisions.tls.certresolver=letsencryptresolver"
+      - "traefik.http.routers.system-design-decisions.middlewares=security-headers@file"
+      - "traefik.http.services.system-design-decisions.loadbalancer.server.port=8080"
+
+networks:
+  space-server_web:
+    external: true

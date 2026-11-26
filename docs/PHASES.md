@@ -6,8 +6,8 @@
 
 | Phase | Name | Status | spec-kit feature |
 |---|---|---|---|
-| 0 | Project init + constitution | ⬜ pending | n/a (one-off) |
-| 1 | Walking skeleton | ⬜ pending | |
+| 0 | Project init + constitution | ✅ done | n/a (one-off) |
+| 1 | Walking skeleton | 🟨 in progress: analyze clean (0 CRITICAL); implement T001–T032 done (setup, foundational, US2 checks, US3 staleness; 146 tests green); next: US1 site, container, deploy (T033–T051) | `specs/001-walking-skeleton` |
 | 2 | Design system & card layout | ⬜ pending | |
 | 3 | Discovery (search, path, radar) | ⬜ pending | |
 | 4 | Progress | ⬜ pending | |
@@ -31,7 +31,7 @@ v1 ships when Phase 7 is done.
 ## How we work (non-negotiable)
 
 ### Spec-Driven Development with spec-kit
-spec-kit is installed as `specify` 1.4.2 and runs as Claude skills.
+spec-kit is installed as `specify` 1.4.3 and runs as Claude skills (`.claude/skills/speckit-*`). The bundled **git extension** is installed: `/speckit-specify` creates the `NNN-…` feature branch. All its auto-commit hooks are off (`.specify/extensions/git/git-config.yml`), so every commit is deliberate. The constitution is v1.0.0 (`.specify/memory/constitution.md`).
 
 - **The constitution is written once** (Phase 0) and updated only on purpose.
 - **Each phase from 1 to 8 is one spec-kit feature.** Run these steps in order, one at a time, and review each artifact before moving on:
@@ -96,6 +96,7 @@ Out of scope: visual design, search, progress, diagrams.
 **`/speckit-plan` prompt:**
 ```
 Astro (latest stable) scaffolded via the official install guide (npm create astro@latest), MDX and React added with `npx astro add`. Cards live in an Astro content collection with a Zod schema; template/section/related validators as Node scripts with Vitest tests (TDD). Docker multi-stage build → nginx:alpine serving the static dist. GitHub Actions: ci.yml (lint, test, validate, build) and deploy.yml (workflow_dispatch: buildx → Docker Hub tags latest + short-sha → SSH to polaris2 → docker compose pull && up -d → curl health gate). Traefik labels on the space-server_web network, certresolver letsencryptresolver, security-headers@file middleware — same pattern as wizdaa-takehome. No paid services.
+Host: architecture.cativo.dev. Until public launch every response carries `X-Robots-Tag: noindex` (plus a robots meta tag) and the health gate asserts it. The related-id validator reads the master card list from docs/TOPICS.md (written cards link, planned-but-unwritten render as "not yet available").
 ```
 **Done when:** Saga is live at the production URL and CI provably fails on a broken card (shown by a test).
 
@@ -124,6 +125,7 @@ Readers can find any card in seconds and follow a learning path.
 - Learning path page: the recommended reading order across domains.
 - Radar page: all cards grouped by adopt/trial/assess/hold.
 - Keyboard: j/k jump between sections on a card.
+- Home page at the root, in the approved style: a short hero (what the guide is, who it's for), two entry points (start the learning path; search), a grid of the 13 domains with card counts and progress meters, and a freshness strip (recently reviewed cards and radar changes). It replaces the minimal index from Phase 1.
 Works offline from the static build (no search server).
 ```
 **Plan notes:** Pagefind (official docs), and a palette island loaded with `client:idle`.

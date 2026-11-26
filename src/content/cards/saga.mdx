@@ -1,0 +1,95 @@
+---
+id: saga
+title: Saga
+domain: distributed-data
+order: 3
+status: adopt
+reviewed: 2026-11
+tags: [transactions, consistency, microservices]
+aliases: [distributed transactions, compensating transactions]
+related: [outbox-cdc, idempotency, durable-execution]
+---
+
+## TL;DR
+
+Split a business transaction that spans several services into a sequence of local transactions.
+If a step fails, run compensating actions to undo the steps that already committed. You trade
+atomicity and isolation for availability and loose coupling.
+
+## Problem it solves
+
+Placing an order touches Orders, Payments and Inventory, and each service owns its own database.
+A single ACID transaction can't span them. Distributed two-phase commit (2PC) holds locks across
+the network, most modern brokers and datastores don't support it, and it fails badly when one
+participant is slow.
+
+A Saga gives up on making all the writes atomic. Instead, it guarantees that the system ends up in
+a consistent business state: either every step completes, or the completed steps are undone
+semantically.
+
+## How it works
+
+Each step is a local transaction that commits immediately and triggers the next one. Each step
+also has a compensating transaction, a business-level undo such as refund for charge.
+
+## Use it when / Avoid it when
+
+### Use it when
+
+- A business operation spans services that each own their data
+- Every step has a meaningful business undo (refund, release, cancel)
+- The business can tolerate seconds of intermediate state
+- Availability matters more than strict atomicity
+
+### Avoid it when
+
+- All the data lives in one database: use a local transaction
+- Readers must never see intermediate state
+- A step can't be undone (an email that's sent, money that's paid out) and you can't move it to the end
+- Service boundaries are wrong, and merging services would remove the need
+
+## Trade-offs
+
+| dimension | saga | 2PC |
+|---|---|---|
+| consistency | Eventual, with no isolation between steps | Atomic, but blocks if the coordinator fails |
+| availability | No locks held across services | Every participant must be up |
+| simplicity | You write compensations, idempotency and timeouts | The complexity lives in the infrastructure |
+| observability | Needs correlation IDs and saga state tracking | One transaction, one outcome |
+| cost | A workflow engine or broker, plus engineering time | Few modern datastores or brokers support it |
+
+## In the wild
+
+Volatile, verified 2026-11.
+
+- **Temporal**: durable execution, sagas as plain code with retries
+- **AWS Step Functions**: managed orchestration with catch and compensate states
+- **Camunda Zeebe**: BPMN orchestration for long-running processes
+- **MassTransit**: saga state machines on top of a message bus (.NET)
+
+## Pitfalls
+
+- **Steps that aren't idempotent.** A message delivered twice charges the customer twice. Every
+  step and every compensation needs an idempotency key.
+- **Dual write without an outbox.** Committing to the database and then publishing the event can
+  lose the event when the process crashes in between. Write the event to a transactional outbox in
+  the same transaction.
+- **Compensations that can fail.** An undo step that fails leaves the system inconsistent. Retry
+  compensations until they succeed, and route anything that still fails to a dead-letter queue for
+  manual handling.
+- **Ignoring isolation anomalies.** Other requests can read partial state, like an order that's
+  charged but not yet reserved. Use semantic locks (for example a PENDING status), or put risky
+  steps last.
+- **Choreography with too many steps.** Past roughly four services, nobody can see the whole flow
+  because it exists only across subscriptions. Switch to orchestration or a durable execution
+  engine.
+
+## Related
+
+<RelatedCards />
+
+## Go deeper
+
+- [paper] [Garcia-Molina & Salem, "Sagas" (1987)](https://www.cs.cornell.edu/andru/cs711/2002fa/reading/sagas.pdf)
+- [pattern] [Chris Richardson, Saga pattern](https://microservices.io/patterns/data/saga.html)
+- [guide] [Azure Architecture Center, Saga design pattern](https://learn.microsoft.com/en-us/azure/architecture/patterns/saga)

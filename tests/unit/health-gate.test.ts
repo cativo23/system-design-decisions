@@ -1,0 +1,99 @@
+import { describe, expect, it } from 'vitest';
+import { checkResponse } from '../../scripts/health-gate.ts';
+
+const SHA = 'abc1234';
+const ROBOTS_META = '<meta name="robots" content="noindex, nofollow">';
+const NOINDEX = { 'X-Robots-Tag': 'noindex, nofollow' };
+
+function res(status: number, headers: Record<string, string>, body: string) {
+  return { status, headers: new Headers(headers), body };
+}
+
+const html = (body: string, head = ROBOTS_META) => `<html><head>${head}</head><body>${body}</body></html>`;
+const INDEX = html('<ul><li><a href="/cards/saga/">Saga</a></li></ul>');
+const CARD = html('<h1>Saga</h1><h2>TL;DR</h2>');
+
+describe('checkResponse: version', () => {
+  it('should pass when the body equals the expected SHA (trimmed)', () => {
+    expect(checkResponse('version', res(200, {}, `${SHA}\n`), SHA)).toEqual([]);
+  });
+
+  it('should fail on a status other than 200', () => {
+    expect(checkResponse('version', res(502, {}, 'Bad Gateway'), SHA)).toEqual([
+      expect.stringMatching(/^GET \/version\.txt: .*502/),
+    ]);
+  });
+
+  it('should fail on a redirect, since redirects are not followed', () => {
+    expect(checkResponse('version', res(301, { Location: '/x' }, ''), SHA)).toEqual([
+      expect.stringMatching(/^GET \/version\.txt: .*301/),
+    ]);
+  });
+
+  it('should fail when the body is another version (a stale container)', () => {
+    expect(checkResponse('version', res(200, {}, 'old0000\n'), SHA)).toEqual([
+      expect.stringMatching(/^GET \/version\.txt: .*old0000.*abc1234/),
+    ]);
+  });
+});
+
+describe('checkResponse: index', () => {
+  it('should pass with the header, the meta and the link to Saga', () => {
+    expect(checkResponse('index', res(200, NOINDEX, INDEX), SHA)).toEqual([]);
+  });
+
+  it('should fail on a status other than 200', () => {
+    expect(checkResponse('index', res(404, NOINDEX, INDEX), SHA)).toEqual([expect.stringMatching(/^GET \/: .*404/)]);
+  });
+
+  it('should fail when X-Robots-Tag is missing', () => {
+    expect(checkResponse('index', res(200, {}, INDEX), SHA)).toEqual(['GET /: X-Robots-Tag missing']);
+  });
+
+  it('should fail when X-Robots-Tag lacks noindex', () => {
+    expect(checkResponse('index', res(200, { 'X-Robots-Tag': 'nofollow' }, INDEX), SHA)).toEqual([
+      expect.stringMatching(/^GET \/: X-Robots-Tag .*noindex/),
+    ]);
+  });
+
+  it('should match noindex in the header case-insensitively', () => {
+    expect(checkResponse('index', res(200, { 'X-Robots-Tag': 'NoIndex' }, INDEX), SHA)).toEqual([]);
+  });
+
+  it('should fail when the robots meta tag is missing', () => {
+    const body = html('<a href="/cards/saga/">Saga</a>', '');
+    expect(checkResponse('index', res(200, NOINDEX, body), SHA)).toEqual([expect.stringMatching(/^GET \/: .*robots meta/)]);
+  });
+
+  it('should fail when the link to /cards/saga/ is missing', () => {
+    expect(checkResponse('index', res(200, NOINDEX, html('<p>empty</p>')), SHA)).toEqual([
+      expect.stringMatching(/^GET \/: .*\/cards\/saga\//),
+    ]);
+  });
+});
+
+describe('checkResponse: card', () => {
+  it('should pass with the header, the meta and the Saga H1', () => {
+    expect(checkResponse('card', res(200, NOINDEX, CARD), SHA)).toEqual([]);
+  });
+
+  it('should fail when X-Robots-Tag is missing', () => {
+    expect(checkResponse('card', res(200, {}, CARD), SHA)).toEqual(['GET /cards/saga/: X-Robots-Tag missing']);
+  });
+
+  it('should fail when the robots meta tag is missing', () => {
+    expect(checkResponse('card', res(200, NOINDEX, html('<h1>Saga</h1>', '')), SHA)).toEqual([
+      expect.stringMatching(/^GET \/cards\/saga\/: .*robots meta/),
+    ]);
+  });
+
+  it('should fail when the Saga H1 is missing', () => {
+    expect(checkResponse('card', res(200, NOINDEX, html('<h1>Outbox</h1>')), SHA)).toEqual([
+      expect.stringMatching(/^GET \/cards\/saga\/: .*H1/),
+    ]);
+  });
+
+  it('should report every problem at once', () => {
+    expect(checkResponse('card', res(200, {}, html('<p>x</p>', '')), SHA)).toHaveLength(3);
+  });
+});

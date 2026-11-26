@@ -1,0 +1,35 @@
+---
+import { getCollection, render } from 'astro:content';
+import RelatedCards from '../../components/RelatedCards.astro';
+import Base from '../../layouts/Base.astro';
+import { domainBySlug } from '../../lib/domains.ts';
+
+export async function getStaticPaths() {
+  const cards = await getCollection('cards');
+  return cards.map((card) => ({ params: { id: card.id }, props: { card } }));
+}
+
+const { card } = Astro.props;
+const { title, domain, status, reviewed, tags } = card.data;
+const { Content } = await render(card);
+---
+
+<Base title={`${title} · Systems Field Guide`}>
+  <main>
+    <article>
+      <h1>{title}</h1>
+      <dl>
+        <dt>Domain</dt>
+        <dd>{domainBySlug(domain)!.name}</dd>
+        <dt>Status</dt>
+        <dd>{status.toUpperCase()}</dd>
+        <dt>Reviewed</dt>
+        <dd>{reviewed}</dd>
+        <dt>Tags</dt>
+        <dd>{tags.join(', ')}</dd>
+      </dl>
+      {/* RelatedCards is passed in so cards use <RelatedCards /> without importing it (research.md R6). */}
+      <Content components={{ RelatedCards }} />
+    </article>
+  </main>
+</Base>
