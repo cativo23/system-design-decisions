@@ -1,0 +1,10 @@
+---
+// Mapped to `table`: a frame that scrolls sideways inside itself (FR-029).
+// The Trade-offs table (the only one with meters) also gets the reading hint.
+const hasMeters = (await Astro.slots.render('default')).includes('class="meter"');
+---
+
+<div class="table-wrap" tabindex="0" role="region" aria-label="Trade-offs table">
+  <table><slot /></table>
+</div>
+{hasMeters && <p class="hint">// more █ = better for you</p>}

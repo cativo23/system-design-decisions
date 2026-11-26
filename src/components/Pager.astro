@@ -1,0 +1,35 @@
+---
+// Previous/next card in learning-path order, across domains (FR-020). A neighbour that is not
+// written yet is text with "not yet available"; an absent side is omitted.
+import { getCollection } from 'astro:content';
+import { buildPath, neighbors, type PathEntry } from '../lib/layout/path.ts';
+import { parseTopics } from '../lib/topics.ts';
+import topicsMarkdown from '../../docs/TOPICS.md?raw';
+
+const { topics } = parseTopics(topicsMarkdown, 'docs/TOPICS.md');
+const written = new Map((await getCollection('cards')).map((c) => [c.data.id, c.data.status] as const));
+const { prev, next } = neighbors(buildPath(topics, written), Astro.params.id!);
+
+const sides: { entry: PathEntry | null; label: string; cls: string }[] = [
+  { entry: prev, label: '← prev', cls: 'prev' },
+  { entry: next, label: 'next →', cls: 'next' },
+];
+---
+
+<nav class="pager" aria-label="Previous and next card">
+  {
+    sides.map(({ entry, label, cls }) =>
+      entry === null ? null : entry.written ? (
+        <a class={cls} href={`/cards/${entry.id}/`}>
+          <small>{label}</small>
+          {entry.title}
+        </a>
+      ) : (
+        <span class={`pending ${cls}`}>
+          <small>{label}</small>
+          {entry.title} <small>not yet available</small>
+        </span>
+      ),
+    )
+  }
+</nav>
