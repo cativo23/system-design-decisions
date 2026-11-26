@@ -8,7 +8,7 @@
 |---|---|---|---|
 | 0 | Project init + constitution | ✅ done | n/a (one-off) |
 | 1 | Walking skeleton | ✅ done: `/speckit-converge` reported Converged (T001–T055 done). Saga is live at architecture.cativo.dev (noindex) via deploy.yml, in repo `cativo23/system-design-decisions` (`main` protected). 187 tests green. The quickstart run found one bug (blank health-gate failure lines), now fixed | `specs/001-walking-skeleton` |
-| 2 | Design system & card layout | ⬜ pending | |
+| 2 | Design system & card layout | 🟨 in progress: specify, clarify (5 questions), plan, tasks (T001–T076) and analyze done; `/speckit-implement` pending. Plan decisions: plain CSS (no Tailwind), self-hosted fonts, persist the tree only, card format v2, constitution III read as covering behaviour scripts (ratified 2026-11-25) | `specs/002-design-system-card-layout` |
 | 3 | Discovery (search, path, radar) | ⬜ pending | |
 | 4 | Progress | ⬜ pending | |
 | 5 | ASCII diagram & simulator kit | ⬜ pending | |
