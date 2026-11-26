@@ -41,10 +41,10 @@ static site, with no new framework.
 **Language/Version**: TypeScript (erasable syntax only) on Node 24 LTS, as Phase 1. Astro
 7.4.x. Client code is plain TypeScript bundled by Astro (no React, no island).
 
-**Primary Dependencies**: existing: `astro`, `@astrojs/mdx`, `yaml`. New (dev): 
-`@fontsource-variable/geist-mono`, `@fontsource-variable/inter` (font files, pinned by the
-lockfile). Built into Astro, no install: `<ClientRouter />`, the Fonts API. No Tailwind, no
-React, no test runner added.
+**Primary Dependencies**: existing: `astro`, `@astrojs/mdx`, `yaml`. No new package: the fonts
+come from Astro's Fonts API with the `fontsource` provider (`fontProviders.npm()` was tried in
+T002 and rejected, see R16), and `<ClientRouter />` is built in. No Tailwind, no React, no test
+runner added.
 
 **Storage**: Files in git only (`src/content/cards/*.mdx`, `docs/TOPICS.md`). No runtime
 storage; reader progress does not exist yet.
