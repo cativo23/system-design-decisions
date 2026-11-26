@@ -15,7 +15,8 @@ export const PATHS: Record<Kind, string> = { version: '/version.txt', index: '/'
 
 const ROBOTS_META = /<meta\b(?=[^>]*\bname=["']?robots\b)(?=[^>]*\bcontent=["'][^"']*noindex)[^>]*>/i;
 const SAGA_LINK = /\bhref=["']?\/cards\/saga\/(?=["'\s>])/;
-const SAGA_H1 = /<h1\b[^>]*>\s*Saga\s*<\/h1>/i;
+// Inline elements inside the heading are allowed (the typed title wraps the text in a <span>).
+const SAGA_H1 = /<h1\b[^>]*>(?:\s|<[^>]+>)*Saga(?:\s|<\/?[^>]+>)*<\/h1>/i;
 
 /** Returns one message per failed assertion, each naming the URL path; [] when the response passes. */
 export function checkResponse(kind: Kind, { status, headers, body }: GateResponse, expectedVersion: string): string[] {

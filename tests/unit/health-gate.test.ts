@@ -87,6 +87,11 @@ describe('checkResponse: card', () => {
     ]);
   });
 
+  it('should pass when the H1 wraps the title in an inline element (typed title)', () => {
+    const typed = html('<h1 class="is-typed" style="--len:4"><span class="typed">Saga</span></h1>');
+    expect(checkResponse('card', res(200, NOINDEX, typed), SHA)).toEqual([]);
+  });
+
   it('should fail when the Saga H1 is missing', () => {
     expect(checkResponse('card', res(200, NOINDEX, html('<h1>Outbox</h1>')), SHA)).toEqual([
       expect.stringMatching(/^GET \/cards\/saga\/: .*H1/),
