@@ -66,6 +66,15 @@ Each code is covered by at least one failing automated example (SC-002).
 | `cost-row-missing` | The Trade-offs section has no table row whose first cell is `cost` | n/a |
 | `related-unknown` | A `related` id is neither a written card nor a topic in TOPICS.md | the id |
 | `related-self` | A card lists its own id in `related` | the id |
+| `related-why-missing` | A `related` entry has a blank `why` (v2) | the related id |
+| `tldr-shape` | TL;DR is not exactly one paragraph (v2) | the paragraph count |
+| `use-avoid-shape` | The section is not `### Use it when` then `### Avoid it when`, each with a bullet (v2) | what is missing or out of order |
+| `tradeoffs-shape` | The Trade-offs table does not have exactly 3 columns (v2) | the column count |
+| `meter-missing` | A Trade-offs value cell does not start with `<Meter n={…} />` (v2) | the row and column |
+| `meter-range` | A meter `n` is not an integer from 0 to 6 (v2) | the row, column and value |
+| `wild-entry-malformed` | An In the wild bullet lacks a directory-form bold name or a description (v2) | the line |
+| `pitfall-malformed` | A `<Pitfall>` lacks a title or body, none exists, or other content appears (v2) | the title or line |
+| `source-malformed` | A Go deeper bullet is not a valid `<Source kind href>` with an `https://` href (v2) | the line |
 | `id-duplicate` | Two or more card files declare the same `id` | the id and every other file using it |
 | `id-not-in-topics` | A card's `id` isn't in TOPICS.md | the id |
 | `no-cards` | The cards directory has no `*.mdx` files | the directory |

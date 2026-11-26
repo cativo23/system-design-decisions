@@ -1,5 +1,9 @@
 # Contract: Card File Format
 
+> **Amended by Phase 2:** [card format v2](../../002-design-system-card-layout/contracts/card-format.md)
+> changes `related` to `{ id, why }` objects and adds body rules (meters, `<Pitfall>`, `<Source>`, and more).
+> Where the two differ, v2 wins.
+
 A card is one MDX file in `src/content/cards/`, ideally named `<id>.mdx`. The entry id comes
 from the frontmatter `id`, not from the file name.
 
