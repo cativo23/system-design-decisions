@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { checkResponse } from '../../scripts/health-gate.ts';
+import { checkResponse, describeFetchError } from '../../scripts/health-gate.ts';
 
 const SHA = 'abc1234';
 const ROBOTS_META = '<meta name="robots" content="noindex, nofollow">';
@@ -95,5 +95,33 @@ describe('checkResponse: card', () => {
 
   it('should report every problem at once', () => {
     expect(checkResponse('card', res(200, {}, html('<p>x</p>', '')), SHA)).toHaveLength(3);
+  });
+});
+
+// A failed fetch rejects with TypeError("fetch failed"); the useful reason is in its cause.
+function fetchFailure(cause?: Error) {
+  return Object.assign(new TypeError('fetch failed'), cause ? { cause } : {});
+}
+
+describe('describeFetchError', () => {
+  it('should use the cause message when there is one', () => {
+    const cause = new Error('getaddrinfo ENOTFOUND example.invalid');
+    expect(describeFetchError(fetchFailure(cause))).toBe('getaddrinfo ENOTFOUND example.invalid');
+  });
+
+  // Dual-stack hosts: Node tries IPv6 and IPv4 and rejects with an AggregateError whose own message is "".
+  it('should list every attempt when the cause is an AggregateError with an empty message', () => {
+    const cause = new AggregateError(
+      [new Error('connect ECONNREFUSED ::1:8080'), new Error('connect ECONNREFUSED 127.0.0.1:8080')],
+      '',
+    );
+    expect(describeFetchError(fetchFailure(cause))).toBe(
+      'connect ECONNREFUSED ::1:8080; connect ECONNREFUSED 127.0.0.1:8080',
+    );
+  });
+
+  it('should fall back to the error message when there is no cause (e.g. a timeout)', () => {
+    const timeout = new DOMException('The operation was aborted due to timeout', 'TimeoutError');
+    expect(describeFetchError(timeout)).toBe('The operation was aborted due to timeout');
   });
 });

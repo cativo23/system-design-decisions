@@ -46,7 +46,15 @@ export function checkResponse(kind: Kind, { status, headers, body }: GateRespons
   return problems;
 }
 
-const USAGE = 'usage: node scripts/health-gate.ts --origin <https://host> --expect-version <short-sha>';
+/** The reason a fetch rejected. Node hides it in `cause`; on dual-stack hosts the cause is an
+ * AggregateError with an empty message, so the individual attempts are listed instead. */
+export function describeFetchError(error: unknown): string {
+  const err = error as Error & { cause?: Error & { errors?: Error[] } };
+  const attempts = err.cause?.errors?.map((e) => e.message).join('; ');
+  return err.cause?.message || attempts || err.message;
+}
+
+const USAGE ='usage: node scripts/health-gate.ts --origin <https://host> --expect-version <short-sha>';
 const REQUEST_TIMEOUT_MS = 10_000;
 const ROUND_INTERVAL_MS = 10_000;
 const DEADLINE_MS = 180_000;
@@ -79,8 +87,7 @@ async function request(origin: URL, kind: Kind, version: string) {
     const body = await res.text();
     return { kind, ms: elapsed(), problems: checkResponse(kind, { status: res.status, headers: res.headers, body }, version) };
   } catch (error) {
-    const err = error as Error & { cause?: Error };
-    return { kind, ms: elapsed(), problems: [`GET ${PATHS[kind]}: ${err.cause?.message ?? err.message}`] };
+    return { kind, ms: elapsed(), problems: [`GET ${PATHS[kind]}: ${describeFetchError(error)}`] };
   }
 }
 
