@@ -61,7 +61,7 @@ article { padding-block: 44px 120px; max-width: 740px; }
 .backdrop { display: none; }
 @media (max-width: 880px) {
   .topbar-inner { gap: 10px; padding-inline: max(12px, env(safe-area-inset-left)) max(12px, env(safe-area-inset-right)); }
-  .menu-btn { display: grid; place-items: center; width: 44px; height: 44px; margin-left: -8px; padding: 0; background: none; border: 0; border-radius: 8px; color: var(--fg); font: 22px var(--mono); cursor: pointer; }
+  html[data-js] .menu-btn { display: grid; place-items: center; width: 44px; height: 44px; margin-left: -8px; padding: 0; background: none; border: 0; border-radius: 8px; color: var(--fg); font: 22px var(--mono); cursor: pointer; }
   .menu-btn:hover { background: var(--bg-hover); }
   .brand { min-height: 44px; }
   .search { width: auto; flex: 1; height: 44px; max-width: 280px; margin-left: auto; }
@@ -78,8 +78,15 @@ article { padding-block: 44px 120px; max-width: 740px; }
   .tree-close { display: block; width: 100%; min-height: 44px; margin-bottom: 8px; padding: 0 6px; text-align: left; background: none; border: 0; border-bottom: 1px solid var(--line); color: var(--fg-muted); font: 12.5px var(--mono); cursor: pointer; }
   .tree summary, .tree li > .card { min-height: 44px; align-items: center; }
 
+  /* Very narrow viewports (200% zoom of a 320px phone): wrap instead of overflowing. */
+  .topbar-inner { height: auto; min-height: 54px; flex-wrap: wrap; }
+  .search { min-width: 0; }
+  .pitfall summary { grid-template-columns: auto minmax(0, 1fr) auto; }
+  .pitfall-title, .pitfall-body, article li, article p { overflow-wrap: anywhere; }
+  .pitfall-body p { padding-left: 16px; }
+
   .statusline .hide-sm { display: none; }
-  .pager { grid-template-columns: 1fr; }
+  .pager { grid-template-columns: minmax(0, 1fr); overflow-wrap: anywhere; }
   .pager .next { grid-column: 1; }
   .pager a, .pager span.pending { min-height: 44px; }
   .pitfall summary { min-height: 44px; align-items: center; }

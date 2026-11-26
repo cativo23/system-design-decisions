@@ -50,7 +50,7 @@ h3[data-kind="use"] { border-radius: 12px 12px 0 0; }
 h3[data-kind="avoid"] { border-top: 0; }
 h3[data-kind] + ul { list-style: none; margin: 0; padding: 0; border: 1px solid var(--line); border-top: 0; background: var(--bg-raised); font: 13px / 1.6 var(--mono); }
 h3[data-kind="avoid"] + ul { border-radius: 0 0 12px 12px; }
-h3[data-kind] + ul > li { display: grid; grid-template-columns: 2ch 1fr; gap: 10px; padding: 5px 16px; }
+h3[data-kind] + ul > li { display: grid; grid-template-columns: 2ch minmax(0, 1fr); overflow-wrap: anywhere; gap: 10px; padding: 5px 16px; }
 h3[data-kind="use"] + ul > li { background: rgba(76, 195, 138, 0.07); color: #b9e6cf; }
 h3[data-kind="avoid"] + ul > li { background: rgba(242, 85, 90, 0.07); color: #f1c0c2; }
 h3[data-kind] + ul > li::before { font-weight: 500; }
@@ -97,7 +97,7 @@ td:nth-child(3) .meter { color: var(--fg-faint); }
 .pitfall-body p { margin: 0; padding: 0 16px 14px calc(6ch + 26px); font-size: 14px; }
 
 /* ---------- related: spotlight cards ---------- */
-.related { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 10px; }
+.related { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(220px, 100%), 1fr)); gap: 10px; }
 .rel { position: relative; display: block; border: 1px solid var(--line); border-radius: 12px; padding: 14px 16px; overflow: hidden; transition: border-color 0.2s, transform 0.2s; }
 .rel::before { content: ""; position: absolute; inset: 0; opacity: 0; transition: opacity 0.25s; pointer-events: none; background: radial-gradient(240px circle at var(--mx, 50%) var(--my, 50%), rgba(74, 222, 128, 0.14), transparent 60%); }
 a.rel:hover { border-color: var(--line-strong); transform: translateY(-2px); }

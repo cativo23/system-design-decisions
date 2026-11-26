@@ -15,6 +15,7 @@ document.addEventListener('astro:before-swap', () => {
   treeScroll = document.getElementById('tree')?.scrollTop ?? 0;
 });
 document.addEventListener('astro:after-swap', () => {
+  document.documentElement.dataset.js = ''; // the swap replaces <html> attributes
   const tree = document.getElementById('tree');
   if (tree) tree.scrollTop = treeScroll;
 });
@@ -30,6 +31,8 @@ document.addEventListener('astro:page-load', () => {
 });
 
 function init(navigated: boolean): () => void {
+  // Marks that scripts run, so the phone menu button (useless without them) only shows then.
+  document.documentElement.dataset.js = '';
   const pct = document.getElementById('sl-pct');
   const tocLinks = [...document.querySelectorAll<HTMLAnchorElement>('.toc a[href^="#"]')];
 
