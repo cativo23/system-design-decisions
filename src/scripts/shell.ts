@@ -3,7 +3,20 @@ import { scrollLabel } from '../lib/layout/scroll.ts';
 import { currentSection } from '../lib/layout/toc.ts';
 import { treeCurrent } from '../lib/layout/tree.ts';
 
-const READING_LINE = 120; // px from the top: a section is "current" once its heading passes this line
+// A section is "current" once its heading passes this line: below the sticky bar plus the heading's scroll margin
+// (about 135 px), with slack so the last sections still win on short pages that cannot scroll further.
+const READING_LINE = 200;
+
+// A persisted element is moved in the DOM during the swap, which resets its scrollTop
+// (verified in T058), so the tree's position is saved before and restored after (research.md R5).
+let treeScroll = 0;
+document.addEventListener('astro:before-swap', () => {
+  treeScroll = document.getElementById('tree')?.scrollTop ?? 0;
+});
+document.addEventListener('astro:after-swap', () => {
+  const tree = document.getElementById('tree');
+  if (tree) tree.scrollTop = treeScroll;
+});
 
 let teardown: (() => void) | null = null;
 let firstLoad = true;
