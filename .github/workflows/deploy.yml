@@ -40,8 +40,8 @@ jobs:
           push: true
           build-args: GIT_SHA=${{ steps.sha.outputs.short }}
           tags: |
-            ${{ secrets.DOCKERHUB_USERNAME }}/systems-field-guide:latest
-            ${{ secrets.DOCKERHUB_USERNAME }}/systems-field-guide:${{ steps.sha.outputs.short }}
+            ${{ secrets.DOCKERHUB_USERNAME }}/system-design-decisions:latest
+            ${{ secrets.DOCKERHUB_USERNAME }}/system-design-decisions:${{ steps.sha.outputs.short }}
 
   release:
     needs: publish
@@ -58,7 +58,7 @@ jobs:
           username: ${{ secrets.POLARIS_USER }}
           key: ${{ secrets.POLARIS_SSH_KEY }}
           source: compose.prod.yml
-          target: /home/cativo23/deploy/systems-field-guide
+          target: /home/cativo23/deploy/system-design-decisions
       # No docker login on the server: the image is public.
       - uses: appleboy/ssh-action@0ff4204d59e8e51228ff73bce53f80d53301dee2 # v1.2.5
         with:
@@ -68,7 +68,7 @@ jobs:
           key: ${{ secrets.POLARIS_SSH_KEY }}
           script: |
             set -e
-            cd /home/cativo23/deploy/systems-field-guide
+            cd /home/cativo23/deploy/system-design-decisions
             docker compose -f compose.prod.yml pull
             docker compose -f compose.prod.yml up -d --remove-orphans
             docker image prune -f

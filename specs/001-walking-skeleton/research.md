@@ -173,9 +173,9 @@ here as **verified** only when it was observed directly.
   `concurrency: deploy` (no cancel-in-progress, so a deploy is never killed mid-way). Jobs:
   1. `checks`: `uses: ./.github/workflows/ci.yml`. This reruns the full CI on the dispatched SHA.
   2. `publish` (`needs: checks`, `if: github.ref == 'refs/heads/main'`): buildx → push
-     `<user>/systems-field-guide:latest` and `:<short-sha>`, with build arg `GIT_SHA=<short-sha>`.
+     `<user>/system-design-decisions:latest` and `:<short-sha>`, with build arg `GIT_SHA=<short-sha>`.
   3. `release` (`needs: publish`): scp `compose.prod.yml` to
-     `/home/cativo23/deploy/systems-field-guide`, then ssh `docker compose -f compose.prod.yml pull && docker compose -f compose.prod.yml up -d --remove-orphans && docker image prune -f`.
+     `/home/cativo23/deploy/system-design-decisions`, then ssh `docker compose -f compose.prod.yml pull && docker compose -f compose.prod.yml up -d --remove-orphans && docker image prune -f`.
   4. `verify` (`needs: release`): checkout, setup-node, `node scripts/health-gate.ts --origin https://architecture.cativo.dev --expect-version <short-sha>`.
 - **Rationale:**
   - FR-018: the deploy reruns the checks on the exact commit. If they fail, nothing is built

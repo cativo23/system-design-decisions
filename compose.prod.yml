@@ -5,7 +5,7 @@
 services:
   app:
     # The image is public, so the server pulls it without a registry login.
-    image: ${DOCKERHUB_USERNAME:-cativo23}/systems-field-guide:latest
+    image: ${DOCKERHUB_USERNAME:-cativo23}/system-design-decisions:latest
     restart: unless-stopped
     # No host port bindings: Traefik reaches the container over space-server_web.
     healthcheck:
@@ -25,11 +25,11 @@ services:
     labels:
       - "traefik.enable=true"
       - "traefik.docker.network=space-server_web"
-      - "traefik.http.routers.systems-field-guide.rule=Host(`architecture.cativo.dev`)"
-      - "traefik.http.routers.systems-field-guide.entrypoints=websecure"
-      - "traefik.http.routers.systems-field-guide.tls.certresolver=letsencryptresolver"
-      - "traefik.http.routers.systems-field-guide.middlewares=security-headers@file"
-      - "traefik.http.services.systems-field-guide.loadbalancer.server.port=8080"
+      - "traefik.http.routers.system-design-decisions.rule=Host(`architecture.cativo.dev`)"
+      - "traefik.http.routers.system-design-decisions.entrypoints=websecure"
+      - "traefik.http.routers.system-design-decisions.tls.certresolver=letsencryptresolver"
+      - "traefik.http.routers.system-design-decisions.middlewares=security-headers@file"
+      - "traefik.http.services.system-design-decisions.loadbalancer.server.port=8080"
 
 networks:
   space-server_web:
