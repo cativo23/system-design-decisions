@@ -1,6 +1,9 @@
 ---
 import { getCollection, render } from 'astro:content';
+import Meter from '../../components/Meter.astro';
+import Pitfall from '../../components/Pitfall.astro';
 import RelatedCards from '../../components/RelatedCards.astro';
+import Source from '../../components/Source.astro';
 import Base from '../../layouts/Base.astro';
 import { domainBySlug } from '../../lib/domains.ts';
 
@@ -28,8 +31,8 @@ const { Content } = await render(card);
         <dt>Tags</dt>
         <dd>{tags.join(', ')}</dd>
       </dl>
-      {/* RelatedCards is passed in so cards use <RelatedCards /> without importing it (research.md R6). */}
-      <Content components={{ RelatedCards }} />
+      {/* Components are passed in so cards use them without importing (research.md R6). */}
+      <Content components={{ Meter, Pitfall, Source, RelatedCards }} />
     </article>
   </main>
 </Base>

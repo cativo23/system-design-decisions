@@ -1,6 +1,7 @@
 import type { CheckFailure, RuleCode } from '../check-failure.ts';
 import type { TopicEntry } from '../topics.ts';
 import { hasCostRow, type ParsedCard, type Section } from './parse-card.ts';
+import { layoutFailures } from './layout-rules.ts';
 import { cardSchema } from './schema.ts';
 import { TEMPLATE } from './template.ts';
 
@@ -46,7 +47,8 @@ export function validateCards(cards: ParsedCard[], topics: TopicEntry[], today: 
 
     const related = card.data?.related;
     if (Array.isArray(related)) {
-      for (const ref of related) {
+      for (const entry of related) {
+        const ref = (entry as { id?: unknown } | null)?.id;
         if (typeof ref !== 'string' || ref.trim() === '') continue; // the schema reports these
         if (ref === id) fail('related-self', `related lists the card's own id "${ref}"`);
         else if (!filesById.has(ref) && !topicIds.has(ref)) {
@@ -82,6 +84,12 @@ function checkMetadata(data: Record<string, unknown>, fail: Fail) {
   if (result.success) return;
   for (const issue of result.error.issues) {
     if (missing.includes(String(issue.path[0]))) continue;
+    if (issue.path[0] === 'related' && issue.path[2] === 'why') {
+      // A blank why has its own code so the author sees which related card needs a reason.
+      const entry = (data.related as { id?: unknown }[])[Number(issue.path[1])];
+      fail('related-why-missing', `related "${String(entry?.id)}" needs a non-blank why`);
+      continue;
+    }
     const value = issue.path.reduce<unknown>((v, key) => (v as Record<PropertyKey, unknown>)?.[key as PropertyKey], data);
     fail('metadata-invalid', `${issue.message} (got ${JSON.stringify(value)})`);
   }
@@ -114,6 +122,8 @@ function checkSections(sections: Section[], fail: Fail) {
   if (actual.join('\n') !== expected.join('\n')) {
     fail('section-order', `expected ${expected.join(', ')}; found ${actual.join(', ')}`);
   }
+
+  for (const f of layoutFailures(firsts)) fail(f.rule, f.detail);
 
   const tradeOffs = firsts.find((s) => s.title === 'Trade-offs');
   if (tradeOffs && !tradeOffs.empty && !hasCostRow(tradeOffs.lines)) {

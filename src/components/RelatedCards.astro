@@ -18,10 +18,10 @@ const items = resolveRelated(card?.data.related ?? [], written, topics);
     items.map((item) =>
       item.available ? (
         <li>
-          <a href={item.href}>{item.title}</a> · {item.status.toUpperCase()}
+          <a href={item.href}>{item.title}</a> · {item.status.toUpperCase()} · {item.why}
         </li>
       ) : (
-        <li>{item.title} (not yet available)</li>
+        <li>{item.title} (not yet available) · {item.why}</li>
       ),
     )
   }

@@ -10,6 +10,9 @@ const VALID = readFileSync(new URL('cards/alpha.mdx', FIXTURES), 'utf8');
 const { topics: TOPICS } = parseTopics(readFileSync(new URL('TOPICS.md', FIXTURES), 'utf8'), 'TOPICS.md');
 const TODAY = '2026-11-23';
 
+// Builds a one-line `related` list of { id, why } objects for the frontmatter.
+const rel = (...ids: string[]) => `[${ids.map((id) => `{id: ${id}, why: w}`).join(', ')}]`;
+
 function card(file: string, changes: Record<string, string> = {}) {
   let source = VALID;
   for (const [field, value] of Object.entries(changes)) {
@@ -20,23 +23,29 @@ function card(file: string, changes: Record<string, string> = {}) {
 
 describe('validateCards: cross-card rules', () => {
   it('should pass a related id that is planned but unwritten', () => {
-    expect(validateCards([card('a.mdx', { related: '[beta, gamma]' })], TOPICS, TODAY, 'cards')).toEqual([]);
+    expect(validateCards([card('a.mdx', { related: rel('beta', 'gamma') })], TOPICS, TODAY, 'cards')).toEqual([]);
   });
 
   it('should pass a related id that is another written card', () => {
-    const cards = [card('a.mdx', { related: '[beta2]' }), card('b.mdx', { id: 'beta2' })];
+    const cards = [card('a.mdx', { related: rel('beta2') }), card('b.mdx', { id: 'beta2' })];
     const topics = [...TOPICS, { id: 'beta2', title: 'Beta 2', domainNumber: 1, state: 'pending' as const }];
     expect(validateCards(cards, topics, TODAY, 'cards')).toEqual([]);
   });
 
   it('should report related-unknown for an id in neither the cards nor the topics', () => {
-    expect(validateCards([card('a.mdx', { related: '[beta, nope]' })], TOPICS, TODAY, 'cards')).toEqual([
+    expect(validateCards([card('a.mdx', { related: rel('beta', 'nope') })], TOPICS, TODAY, 'cards')).toEqual([
       { file: 'a.mdx', id: 'alpha', rule: 'related-unknown', detail: expect.stringContaining('"nope"') },
     ]);
   });
 
+  it('should report related-why-missing naming the related id', () => {
+    expect(validateCards([card('a.mdx', { related: '[{id: beta, why: " "}]' })], TOPICS, TODAY, 'cards')).toEqual([
+      { file: 'a.mdx', id: 'alpha', rule: 'related-why-missing', detail: expect.stringContaining('"beta"') },
+    ]);
+  });
+
   it('should report related-self when a card lists its own id', () => {
-    expect(validateCards([card('a.mdx', { related: '[alpha]' })], TOPICS, TODAY, 'cards')).toEqual([
+    expect(validateCards([card('a.mdx', { related: rel('alpha') })], TOPICS, TODAY, 'cards')).toEqual([
       { file: 'a.mdx', id: 'alpha', rule: 'related-self', detail: 'related lists the card\'s own id "alpha"' },
     ]);
   });
@@ -74,7 +83,7 @@ describe('validateCards: cross-card rules', () => {
 
   it('should return every defect from several cards in one call (FR-013)', () => {
     const cards = [
-      card('a.mdx', { status: 'maybe', related: '[nope]' }),
+      card('a.mdx', { status: 'maybe', related: rel('nope') }),
       card('b.mdx', { id: 'zeta', reviewed: '2030-01' }),
     ];
     expect(validateCards(cards, TOPICS, TODAY, 'cards').map((f) => `${f.file} ${f.rule}`)).toEqual(

@@ -7,7 +7,13 @@ status: adopt
 reviewed: 2026-11
 tags: [transactions, consistency, microservices]
 aliases: [distributed transactions, compensating transactions]
-related: [outbox-cdc, idempotency, durable-execution]
+related:
+  - id: outbox-cdc
+    why: Publish events reliably from each step
+  - id: idempotency
+    why: Makes retries and redelivery safe
+  - id: durable-execution
+    why: Sagas written as plain code
 ---
 
 ## TL;DR
@@ -52,37 +58,50 @@ also has a compensating transaction, a business-level undo such as refund for ch
 
 | dimension | saga | 2PC |
 |---|---|---|
-| consistency | Eventual, with no isolation between steps | Atomic, but blocks if the coordinator fails |
-| availability | No locks held across services | Every participant must be up |
-| simplicity | You write compensations, idempotency and timeouts | The complexity lives in the infrastructure |
-| observability | Needs correlation IDs and saga state tracking | One transaction, one outcome |
-| cost | A workflow engine or broker, plus engineering time | Few modern datastores or brokers support it |
+| consistency | <Meter n={2} /> Eventual, with no isolation between steps | <Meter n={6} /> Atomic, but blocks if the coordinator fails |
+| availability | <Meter n={5} /> No locks held across services | <Meter n={2} /> Every participant must be up |
+| simplicity | <Meter n={2} /> You write compensations, idempotency and timeouts | <Meter n={4} /> The complexity lives in the infrastructure |
+| observability | <Meter n={3} /> Needs correlation IDs and saga state tracking | <Meter n={4} /> One transaction, one outcome |
+| cost | <Meter n={3} /> A workflow engine or broker, plus engineering time | <Meter n={2} /> Few modern datastores or brokers support it |
 
 ## In the wild
 
-Volatile, verified 2026-11.
-
-- **Temporal**: durable execution, sagas as plain code with retries
-- **AWS Step Functions**: managed orchestration with catch and compensate states
-- **Camunda Zeebe**: BPMN orchestration for long-running processes
-- **MassTransit**: saga state machines on top of a message bus (.NET)
+- **temporal** durable execution, sagas as plain code with retries
+- **aws-step-functions** managed orchestration with catch and compensate states
+- **camunda-zeebe** BPMN orchestration for long-running processes
+- **masstransit** saga state machines on top of a message bus (.NET)
 
 ## Pitfalls
 
-- **Steps that aren't idempotent.** A message delivered twice charges the customer twice. Every
-  step and every compensation needs an idempotency key.
-- **Dual write without an outbox.** Committing to the database and then publishing the event can
-  lose the event when the process crashes in between. Write the event to a transactional outbox in
-  the same transaction.
-- **Compensations that can fail.** An undo step that fails leaves the system inconsistent. Retry
-  compensations until they succeed, and route anything that still fails to a dead-letter queue for
-  manual handling.
-- **Ignoring isolation anomalies.** Other requests can read partial state, like an order that's
-  charged but not yet reserved. Use semantic locks (for example a PENDING status), or put risky
-  steps last.
-- **Choreography with too many steps.** Past roughly four services, nobody can see the whole flow
-  because it exists only across subscriptions. Switch to orchestration or a durable execution
-  engine.
+<Pitfall title="Steps that aren't idempotent">
+
+A message delivered twice charges the customer twice. **Every step and every compensation needs an idempotency key.**
+
+</Pitfall>
+
+<Pitfall title="Dual write without an outbox">
+
+Committing to the database and then publishing the event can lose the event when the process crashes in between. **Write the event to a transactional outbox in the same transaction.**
+
+</Pitfall>
+
+<Pitfall title="Compensations that can fail">
+
+An undo step that fails leaves the system inconsistent. **Retry compensations until they succeed**, and route anything that still fails to a dead-letter queue for manual handling.
+
+</Pitfall>
+
+<Pitfall title="Ignoring isolation anomalies">
+
+Other requests can read partial state, like an order that's charged but not yet reserved. **Use semantic locks** (for example a PENDING status), or put risky steps last.
+
+</Pitfall>
+
+<Pitfall title="Choreography with too many steps">
+
+Past roughly four services, nobody can see the whole flow because it exists only across subscriptions. **Switch to orchestration** or a durable execution engine.
+
+</Pitfall>
 
 ## Related
 
@@ -90,6 +109,6 @@ Volatile, verified 2026-11.
 
 ## Go deeper
 
-- [paper] [Garcia-Molina & Salem, "Sagas" (1987)](https://www.cs.cornell.edu/andru/cs711/2002fa/reading/sagas.pdf)
-- [pattern] [Chris Richardson, Saga pattern](https://microservices.io/patterns/data/saga.html)
-- [guide] [Azure Architecture Center, Saga design pattern](https://learn.microsoft.com/en-us/azure/architecture/patterns/saga)
+- <Source kind="paper" href="https://www.cs.cornell.edu/andru/cs711/2002fa/reading/sagas.pdf">Garcia-Molina & Salem, "Sagas" (1987)</Source>
+- <Source kind="pattern" href="https://microservices.io/patterns/data/saga.html">Chris Richardson, Saga pattern</Source>
+- <Source kind="guide" href="https://learn.microsoft.com/en-us/azure/architecture/patterns/saga">Azure Architecture Center, Saga design pattern</Source>

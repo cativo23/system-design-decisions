@@ -48,7 +48,7 @@ describe('validateCards: per-card rules', () => {
     ['order', '0', 'whole number ≥ 1'],
     ['tags', '[a, " "]', 'blank'],
     ['aliases', '[x, x]', 'duplicate "x"'],
-    ['related', '[beta, beta]', 'duplicate "beta"'],
+    ['related', '[{id: beta, why: x}, {id: beta, why: y}]', 'duplicate "beta"'],
   ])('should report metadata-invalid for %s = %s, naming the allowed values or format', (field, value, hint) => {
     const failures = check(setField(field, value)).filter((f) => f.rule === 'metadata-invalid');
     expect(failures).toEqual([
@@ -105,7 +105,7 @@ describe('validateCards: per-card rules', () => {
   });
 
   it('should report cost-row-missing when Trade-offs has no cost row', () => {
-    const source = VALID.replace('| **Cost** | Low | High |', '| speed | Fast | Slow |');
+    const source = VALID.replace('| **Cost** | <Meter n={3} /> Low | <Meter n={2} /> High |', '| speed | <Meter n={3} /> Fast | <Meter n={2} /> Slow |');
     expect(check(source)).toEqual([
       { file: FILE, id: 'alpha', rule: 'cost-row-missing', detail: 'the Trade-offs table needs a row whose first cell is "cost"' },
     ]);

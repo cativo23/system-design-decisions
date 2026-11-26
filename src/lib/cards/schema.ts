@@ -40,6 +40,27 @@ function uniqueList(field: string) {
     });
 }
 
+// Each related card carries the reason it is related (card format v2, contracts/card-format.md).
+const relatedList = z
+  .array(
+    z.object({
+      id: z.string({ error: 'related id must be text' }).regex(SLUG, { error: 'related id must be a lowercase slug, e.g. "outbox-cdc"' }),
+      why: nonBlankText('why'),
+    }),
+    { error: 'related must be a list (use [] for none)' },
+  )
+  .superRefine((items, ctx) => {
+    const seen = new Set<string>();
+    const reported = new Set<string>();
+    for (const { id } of items) {
+      if (seen.has(id) && !reported.has(id)) {
+        ctx.addIssue({ code: 'custom', message: `related has duplicate "${id}"` });
+        reported.add(id);
+      }
+      seen.add(id);
+    }
+  });
+
 export const cardSchema = z.object({
   id: z.string({ error: ID_MSG }).regex(SLUG, { error: ID_MSG }),
   title: nonBlankText('title'),
@@ -49,7 +70,7 @@ export const cardSchema = z.object({
   reviewed: z.string({ error: REVIEWED_MSG }).regex(MONTH, { error: REVIEWED_MSG }),
   tags: uniqueList('tags'),
   aliases: uniqueList('aliases'),
-  related: uniqueList('related'),
+  related: relatedList,
 });
 
 export type CardData = z.infer<typeof cardSchema>;
