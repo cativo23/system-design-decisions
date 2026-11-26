@@ -7,7 +7,7 @@
 | Phase | Name | Status | spec-kit feature |
 |---|---|---|---|
 | 0 | Project init + constitution | ✅ done | n/a (one-off) |
-| 1 | Walking skeleton | 🟨 in progress: implement T001–T051 + T054 done; Saga live at architecture.cativo.dev (noindex) via deploy.yml, repo `cativo23/system-design-decisions` (PR #1 merged, `main` protected); 184 tests green; next: polish T052, T053, T055 + `/speckit-converge` until Converged | `specs/001-walking-skeleton` |
+| 1 | Walking skeleton | ✅ done: `/speckit-converge` reported Converged (T001–T055 done). Saga is live at architecture.cativo.dev (noindex) via deploy.yml, in repo `cativo23/system-design-decisions` (`main` protected). 187 tests green. The quickstart run found one bug (blank health-gate failure lines), now fixed | `specs/001-walking-skeleton` |
 | 2 | Design system & card layout | ⬜ pending | |
 | 3 | Discovery (search, path, radar) | ⬜ pending | |
 | 4 | Progress | ⬜ pending | |
