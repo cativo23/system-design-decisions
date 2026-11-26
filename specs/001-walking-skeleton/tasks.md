@@ -256,8 +256,10 @@ guard publishing exist (FR-018). US3 builds on US2's CLI.
 
 ## Phase 6: Polish & Cross-Cutting Concerns
 
-- [ ] T052 [P] Write a short `README.md` covering what the project is, `npm` scripts (dev, test, validate, build, check:build), how a deploy is triggered, and links to `docs/` and `specs/001-walking-skeleton/quickstart.md`
-- [ ] T053 Run the whole of quickstart.md (§1–§7) and record any deviation as a fix or a converge item
+- [X] T052 [P] Write a short `README.md` covering what the project is, `npm` scripts (dev, test, validate, build, check:build), how a deploy is triggered, and links to `docs/` and `specs/001-walking-skeleton/quickstart.md`
+- [X] T053 Run the whole of quickstart.md (§1–§7) and record any deviation as a fix or a converge item
+  - Run 2026-11-25: §1–§5 and §7 pass. §6 is covered by T051's two `main` dispatches (7m04s and 1m36s, both serving `5f24fed`); its "checks fail" path is structural (`publish` needs `checks`).
+  - Fixed: on an unreachable dual-stack origin the gate's failure lines were blank (`GET /: `), because Node's `fetch` cause is an `AggregateError` with an empty message. `describeFetchError` now lists each attempt (test-first).
 - [X] T054 Update `docs/TOPICS.md`: `saga` stays `[~]` (the constitution allows `[x]` only after the Phase 6 review checklist). Replace its note with "live as the walking-skeleton sample; `[x]` after the Phase 6 review". The totals line is unchanged.
 - [ ] T055 Update `docs/PHASES.md`: set the Phase 1 status per the `/speckit-converge` result
 
