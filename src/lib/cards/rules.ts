@@ -2,19 +2,10 @@ import type { CheckFailure, RuleCode } from '../check-failure.ts';
 import type { TopicEntry } from '../topics.ts';
 import { hasCostRow, type ParsedCard, type Section } from './parse-card.ts';
 import { cardSchema } from './schema.ts';
+import { TEMPLATE } from './template.ts';
 
-// The fixed decision-card template (constitution I, contracts/card-format.md).
-export const TEMPLATE_SECTIONS = [
-  'TL;DR',
-  'Problem it solves',
-  'How it works',
-  'Use it when / Avoid it when',
-  'Trade-offs',
-  'In the wild',
-  'Pitfalls',
-  'Related',
-  'Go deeper',
-];
+// Required section titles, derived from the single template definition.
+export const TEMPLATE_SECTIONS = TEMPLATE.map((s) => s.title);
 
 const REQUIRED_FIELDS = Object.keys(cardSchema.shape);
 

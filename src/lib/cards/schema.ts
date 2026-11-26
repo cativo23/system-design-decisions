@@ -6,6 +6,7 @@ import { DOMAINS } from '../domains.ts';
 // format so a failure is fixable from the report alone (SC-003).
 
 export const RADAR_STATUSES = ['adopt', 'trial', 'assess', 'hold'] as const;
+export type RadarStatus = (typeof RADAR_STATUSES)[number];
 
 const SLUG = /^[a-z0-9]+(-[a-z0-9]+)*$/;
 const MONTH = /^\d{4}-(0[1-9]|1[0-2])$/;
