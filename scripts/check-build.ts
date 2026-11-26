@@ -44,12 +44,17 @@ const gzip = (data: Uint8Array | string) => gzipSync(data, { level: 6 }).length;
 const text = (data: Uint8Array | string) => (typeof data === 'string' ? data : Buffer.from(data).toString('utf8'));
 const bare = (url: string) => url.split(/[?#]/)[0];
 
+/** `index`: the root page has no shell yet, so it is exempt from the skip-link and landmark checks only. */
+export interface CheckOptions {
+  index?: boolean;
+}
+
 interface Analysis {
   sizes: PageSizes;
   problems: string[];
 }
 
-function analyze(html: string, assets: Assets): Analysis {
+function analyze(html: string, assets: Assets, opts: CheckOptions): Analysis {
   const problems: string[] = [];
   const offsite = (what: string, url: string) => problems.push(`${what} from another origin: ${url}`);
   const missing = (what: string, url: string) => problems.push(`${what} ${url} not found in the build output`);
@@ -130,16 +135,55 @@ function analyze(html: string, assets: Assets): Analysis {
   const robots = tags(html, 'meta').some((a) => a.name?.toLowerCase() === 'robots' && /noindex/i.test(a.content ?? ''));
   if (!robots) problems.push('robots meta tag with noindex missing');
 
+  problems.push(...structureProblems(html, cssTexts.map((c) => c.css).join('\n'), opts));
   return { sizes, problems };
 }
 
+// The text between the braces of the first block that starts at `from`, found by counting braces.
+function block(css: string, from: number): string {
+  let depth = 0;
+  for (let i = css.indexOf('{', from); i < css.length; i++) {
+    if (css[i] === '{') depth++;
+    else if (css[i] === '}' && --depth === 0) return css.slice(css.indexOf('{', from) + 1, i);
+  }
+  return '';
+}
+
+function structureProblems(html: string, css: string, { index = false }: CheckOptions): string[] {
+  const problems: string[] = [];
+
+  const h1 = tags(html, 'h1').length;
+  if (h1 !== 1) problems.push(`expected exactly one <h1>, found ${h1}`);
+
+  if (!index) {
+    const body = html.slice(Math.max(0, html.search(/<body\b/i)));
+    const firstLink = tags(body, 'a')[0];
+    if (firstLink?.href !== '#main') problems.push('the first link in <body> must be the skip link (href="#main")');
+    if (!tags(html, '[a-z]+').some((a) => a.id === 'main')) problems.push('no element with id="main" for the skip link to reach');
+    if (tags(html, 'header').length === 0) problems.push('<header> landmark missing');
+    if (tags(html, 'main').length === 0) problems.push('<main> landmark missing');
+    for (const tag of ['nav', 'aside']) {
+      if (tags(html, tag).some((a) => (a['aria-label'] ?? '').trim() === '')) problems.push(`a <${tag}> has no aria-label`);
+    }
+  }
+
+  if (!/\[hidden\]\s*\{[^}]*display\s*:\s*none\s*!important/i.test(css)) {
+    problems.push('CSS lacks the [hidden] rule with display: none !important (constitution V)');
+  }
+  const motion = [...css.matchAll(/@media\s*\(\s*prefers-reduced-motion\s*:\s*reduce\s*\)/gi)].map((m) => block(css, m.index));
+  if (!motion.some((b) => /animation\s*:\s*none/i.test(b) && /transition\s*:\s*none/i.test(b))) {
+    problems.push('CSS lacks a prefers-reduced-motion: reduce block that sets animation and transition to none (constitution V)');
+  }
+  return problems;
+}
+
 /** Returns one message per budget or noindex problem in a built page; [] when it's clean. */
-export function checkPage(html: string, assets: Assets): string[] {
-  return analyze(html, assets).problems;
+export function checkPage(html: string, assets: Assets, opts: CheckOptions = {}): string[] {
+  return analyze(html, assets, opts).problems;
 }
 
 export function measurePage(html: string, assets: Assets): PageSizes {
-  return analyze(html, assets).sizes;
+  return analyze(html, assets, { index: true }).sizes;
 }
 
 export function formatReport(rows: (PageSizes & { file: string })[]): string {
@@ -173,7 +217,7 @@ function main() {
   let failures = 0;
   for (const page of pages) {
     const path = join(dir, page);
-    for (const problem of checkPage(readFileSync(path, 'utf8'), assets)) {
+    for (const problem of checkPage(readFileSync(path, 'utf8'), assets, { index: page === 'index.html' })) {
       console.log(`✗ ${relative('.', path)}: ${problem}`);
       failures++;
     }

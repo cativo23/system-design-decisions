@@ -3,9 +3,13 @@ import { describe, expect, it } from 'vitest';
 import { BUDGETS, checkPage, formatReport, measurePage } from '../../scripts/check-build.ts';
 
 const ROBOTS = '<meta name="robots" content="noindex, nofollow">';
+// The two CSS rules every page must carry (constitution V), and a structure that passes every check.
+const RULES = '<style>[hidden]{display:none!important}@media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}</style>';
+const GOOD_BODY = '<a class="skip-link" href="#main">Skip to content</a><header></header><main id="main"><h1>Saga</h1></main>';
 
-function page({ head = ROBOTS, body = '<h1>Saga</h1>' } = {}) {
-  return `<!DOCTYPE html><html lang="en"><head><meta charset="utf-8">${head}<title>Saga</title></head><body>${body}</body></html>`;
+// `extra` is appended after the body, so size tests can pad a structurally valid page.
+function page({ head = ROBOTS, body = GOOD_BODY, extra = '' } = {}) {
+  return `<!DOCTYPE html><html lang="en"><head><meta charset="utf-8">${head}${RULES}<title>Saga</title></head><body>${body}${extra}</body></html>`;
 }
 
 // Incompressible bytes, so the gzip size is about the byte count.
@@ -57,7 +61,7 @@ describe('checkPage: JavaScript budget (gzip ≤ 12 KB)', () => {
 
   it('should count inline scripts', () => {
     const inline = `<script>${noise(13000).toString('base64')}</script>`;
-    expect(checkPage(page({ body: inline }), {})).toEqual([expect.stringMatching(/^JavaScript is/)]);
+    expect(checkPage(page({ extra: inline }), {})).toEqual([expect.stringMatching(/^JavaScript is/)]);
   });
 
   it('should follow imports transitively so a shared chunk cannot hide bytes', () => {
@@ -130,16 +134,16 @@ describe('checkPage: font budget (woff2 ≤ 110 KB)', () => {
 
 describe('checkPage: HTML and whole-page budgets', () => {
   it('should fail when the HTML document exceeds 51200 bytes raw', () => {
-    const base = page({ body: '' });
-    const filler = (n: number) => page({ body: 'x'.repeat(n) });
+    const base = page();
+    const filler = (n: number) => page({ extra: 'x'.repeat(n) });
     expect(checkPage(filler(51200 - base.length), {})).toEqual([]);
     expect(checkPage(filler(51201 - base.length), {})).toEqual([expect.stringMatching(/HTML is 51201 bytes \(budget 51200\)/)]);
   });
 
   it('should count HTML size in bytes, not characters', () => {
-    const base = page({ body: '' });
+    const base = page();
     // "✓" is 3 bytes in UTF-8.
-    expect(checkPage(page({ body: '✓'.repeat(Math.ceil((51201 - base.length) / 3)) }), {})).toEqual([
+    expect(checkPage(page({ extra: '✓'.repeat(Math.ceil((51201 - base.length) / 3)) }), {})).toEqual([
       expect.stringMatching(/HTML/),
     ]);
   });
@@ -153,7 +157,7 @@ describe('checkPage: HTML and whole-page budgets', () => {
       '/_astro/a.css': Buffer.from(css, 'latin1'),
       '/_astro/fonts/1.woff2': Buffer.alloc(108_000),
     };
-    const html = page({ head, body: noise(33_000).toString('base64') });
+    const html = page({ head, extra: noise(33_000).toString('base64') });
     const problems = checkPage(html, assets);
     expect(problems).toEqual([expect.stringMatching(new RegExp(`^Page is \\d+ bytes \\(budget ${BUDGETS.page}\\)$`))]);
   });
@@ -171,11 +175,14 @@ describe('checkPage: third-party origins', () => {
   });
 
   it('should allow plain links to other sites (they are navigation, not page resources)', () => {
-    expect(checkPage(page({ body: '<a href="https://microservices.io/">microservices.io</a>' }), {})).toEqual([]);
+    expect(checkPage(page({ extra: '<a href="https://microservices.io/">microservices.io</a>' }), {})).toEqual([]);
   });
 
   it('should report every problem at once', () => {
-    expect(checkPage(page({ head: '', body: '<img src="https://x.example/a.png" alt="">' }), {})).toHaveLength(2);
+    const problems = checkPage(page({ head: '', extra: '<img src="https://x.example/a.png" alt="">' }), {});
+    expect(problems).toHaveLength(2);
+    expect(problems).toContainEqual(expect.stringMatching(/another origin/));
+    expect(problems).toContainEqual(expect.stringMatching(/robots/));
   });
 });
 
@@ -199,5 +206,77 @@ describe('measurePage and formatReport', () => {
     expect(out).toContain('5700');
     expect(out).toContain('101860');
     expect(out.split('\n')[0]).toMatch(/js.*css.*fonts.*html.*page/i);
+  });
+});
+
+describe('checkPage: structure (contracts/build-budget.md § Structure checks)', () => {
+  const problems = (html: string, opts?: { index?: boolean }) => checkPage(html, {}, opts);
+
+  it('should pass a page with the full structure', () => {
+    expect(problems(page())).toEqual([]);
+  });
+
+  it.each([
+    ['no <h1>', '<a href="#main">Skip</a><header></header><main id="main"></main>', /exactly one <h1>.*found 0/],
+    ['two <h1>', GOOD_BODY.replace('</main>', '<h1>Two</h1></main>'), /exactly one <h1>.*found 2/],
+  ])('should fail for %s', (_, body, expected) => {
+    expect(problems(page({ body }))).toEqual([expect.stringMatching(expected)]);
+  });
+
+  it('should fail when the first link is not the skip link', () => {
+    const body = '<a href="/">Home</a>' + GOOD_BODY;
+    expect(problems(page({ body }))).toEqual([expect.stringMatching(/skip link/)]);
+  });
+
+  it('should fail when there is no skip link at all', () => {
+    const body = '<header></header><main id="main"><h1>Saga</h1></main>';
+    expect(problems(page({ body }))).toEqual([expect.stringMatching(/skip link/)]);
+  });
+
+  it('should fail when nothing has id="main"', () => {
+    const body = '<a href="#main">Skip</a><header></header><main><h1>Saga</h1></main>';
+    expect(problems(page({ body }))).toEqual([expect.stringMatching(/id="main"/)]);
+  });
+
+  it('should fail without a <header> or a <main>', () => {
+    expect(problems(page({ body: GOOD_BODY.replace('<header></header>', '') }))).toEqual([expect.stringMatching(/<header>/)]);
+    expect(problems(page({ body: GOOD_BODY.replace('<main id="main">', '<div id="main">').replace('</main>', '</div>') }))).toEqual([
+      expect.stringMatching(/<main>/),
+    ]);
+  });
+
+  it.each(['nav', 'aside'])('should fail for a <%s> without an aria-label', (tag) => {
+    const bad = page({ extra: `<${tag}></${tag}>` });
+    expect(problems(bad)).toEqual([expect.stringMatching(new RegExp(`<${tag}>.*aria-label`))]);
+    expect(problems(page({ extra: `<${tag} aria-label="x"></${tag}>` }))).toEqual([]);
+  });
+
+  it('should fail when the CSS lacks the [hidden] rule', () => {
+    const html = page().replace('[hidden]{display:none!important}', '');
+    expect(problems(html)).toEqual([expect.stringMatching(/\[hidden\]/)]);
+  });
+
+  it('should fail when [hidden] is not display:none !important', () => {
+    const html = page().replace('display:none!important}@media', 'display:none}@media');
+    expect(problems(html)).toEqual([expect.stringMatching(/\[hidden\]/)]);
+  });
+
+  it('should fail without a prefers-reduced-motion block that zeroes animation and transition', () => {
+    expect(problems(page().replace('animation:none!important;', ''))).toEqual([expect.stringMatching(/reduced-motion/)]);
+    expect(problems(page().replace('transition:none!important', ''))).toEqual([expect.stringMatching(/reduced-motion/)]);
+    expect(problems(page().replace('@media (prefers-reduced-motion:reduce)', '@media print'))).toEqual([expect.stringMatching(/reduced-motion/)]);
+  });
+
+  it('should read the CSS rules from a linked stylesheet too', () => {
+    const html = page().replace(RULES, '<link rel="stylesheet" href="/_astro/a.css">');
+    const css = '[hidden]{display:none !important}@media (prefers-reduced-motion: reduce){*,*::before{animation:none !important;transition:none !important}}';
+    expect(checkPage(html, { '/_astro/a.css': css })).toEqual([]);
+  });
+
+  it('should exempt the index page from the skip link and landmark checks only', () => {
+    const body = '<main><h1>Systems Field Guide</h1></main>';
+    expect(problems(page({ body }), { index: true })).toEqual([]);
+    expect(problems(page({ body: '<main></main>' }), { index: true })).toEqual([expect.stringMatching(/<h1>/)]);
+    expect(problems(page({ body }).replace('[hidden]{display:none!important}', ''), { index: true })).toEqual([expect.stringMatching(/\[hidden\]/)]);
   });
 });

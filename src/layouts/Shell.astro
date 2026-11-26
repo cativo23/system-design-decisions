@@ -28,10 +28,11 @@ const here = tree.find((t) => t.number === d.number)!;
 ---
 
 <Base title={title}>
+  <a class="skip-link" href="#main">Skip to content</a>
   <TopBar />
   <div class="shell">
     <Tree tree={tree} />
-    <main id="main"><slot /></main>
+    <main id="main" tabindex="-1"><slot /></main>
     <Toc />
   </div>
   <div class="backdrop" hidden></div>
