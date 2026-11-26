@@ -7,7 +7,7 @@
 | Phase | Name | Status | spec-kit feature |
 |---|---|---|---|
 | 0 | Project init + constitution | ✅ done | n/a (one-off) |
-| 1 | Walking skeleton | 🟨 in progress: analyze clean (0 CRITICAL); implement T001–T032 done (setup, foundational, US2 checks, US3 staleness; 146 tests green); next: US1 site, container, deploy (T033–T051) | `specs/001-walking-skeleton` |
+| 1 | Walking skeleton | 🟨 in progress: implement T001–T051 + T054 done; Saga live at architecture.cativo.dev (noindex) via deploy.yml, repo `cativo23/system-design-decisions` (PR #1 merged, `main` protected); 184 tests green; next: polish T052, T053, T055 + `/speckit-converge` until Converged | `specs/001-walking-skeleton` |
 | 2 | Design system & card layout | ⬜ pending | |
 | 3 | Discovery (search, path, radar) | ⬜ pending | |
 | 4 | Progress | ⬜ pending | |
