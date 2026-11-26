@@ -1,0 +1,22 @@
+---
+// tmux-style status line, always on screen. Decorative: the same facts are in the page (aria-hidden).
+// The position field is set live by shell.ts.
+interface Props {
+  domain: string;
+  file: string;
+  status: string;
+  read: number;
+  total: number;
+}
+const { domain, file, status, read, total } = Astro.props;
+---
+
+<div class="statusline" aria-hidden="true">
+  <span class="mode">READ</span>
+  <span class="hide-sm">{domain}</span>
+  <span>{file}</span>
+  <span class:list={['hide-sm', `st-${status}`]}>● {status}</span>
+  <span class="hide-sm">domain {read}/{total}</span>
+  <span class="grow"></span>
+  <span class="pct" id="sl-pct">top</span>
+</div>

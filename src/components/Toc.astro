@@ -1,0 +1,9 @@
+---
+// "On this page": the eight sections after TL;DR. shell.ts marks the current one.
+import { tocEntries } from '../lib/cards/template.ts';
+---
+
+<aside class="toc" aria-label="On this page">
+  <div class="lbl">// on this page</div>
+  {tocEntries().map((e) => <a href={`#${e.id}`}>{e.label}</a>)}
+</aside>

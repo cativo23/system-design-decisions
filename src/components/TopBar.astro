@@ -1,0 +1,14 @@
+---
+// Top bar: brand link and a search trigger. Search arrives in Phase 3, so the trigger is
+// focusable and announced as unavailable (aria-disabled, not `disabled`); activating it does nothing.
+// No navigation links yet (FR-002, FR-031).
+---
+
+<header class="topbar">
+  <div class="topbar-inner">
+    <a class="brand" href="/"><span class="p">❯</span>systems-field-guide<span class="caret" aria-hidden="true"></span></a>
+    <button type="button" class="search" aria-disabled="true" aria-label="Search (not available yet)">
+      <span class="slash" aria-hidden="true">/</span> search
+    </button>
+  </div>
+</header>

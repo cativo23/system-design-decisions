@@ -46,7 +46,10 @@ export function buildTree(topics: TopicEntry[], writtenIds: ReadonlySet<string>,
 }
 
 /** Which card and domain to mark for a page path after a client-side navigation. */
-export function treeCurrent(pathname: string, tree: TreeDomain[]): { id: string; domain: number } | null {
+export function treeCurrent(
+  pathname: string,
+  tree: { number: number; cards: { id: string; href?: string }[] }[],
+): { id: string; domain: number } | null {
   for (const d of tree) {
     for (const c of d.cards) if (c.href !== undefined && c.href === pathname) return { id: c.id, domain: d.number };
   }

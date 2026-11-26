@@ -8,7 +8,7 @@ import SectionHeading from '../../components/SectionHeading.astro';
 import Source from '../../components/Source.astro';
 import Subheading from '../../components/Subheading.astro';
 import TableFrame from '../../components/TableFrame.astro';
-import Base from '../../layouts/Base.astro';
+import Shell from '../../layouts/Shell.astro';
 import { domainBySlug } from '../../lib/domains.ts';
 import { isTypable } from '../../lib/layout/typed-title.ts';
 import '../../styles/card.css';
@@ -25,9 +25,8 @@ const d = domainBySlug(domain)!;
 const typed = isTypable(title);
 ---
 
-<Base title={`${title} · Systems Field Guide`}>
-  <main id="main">
-    <article>
+<Shell title={`${title} · Systems Field Guide`} card={{ id, domain, status }}>
+  <article>
       <div class="prompt">
         <span class="path">~/catalog/{String(d.number).padStart(2, '0')}-{d.slug}</span><span class="sym">❯</span><span class="cmd">cat {id}.md</span>
       </div>
@@ -42,6 +41,5 @@ const typed = isTypable(title);
       {/* Components are passed in so cards use them without importing (research.md R6). */}
       <Content components={{ Meter, Pitfall, Source, RelatedCards, h2: SectionHeading, h3: Subheading, table: TableFrame }} />
       <Pager />
-    </article>
-  </main>
-</Base>
+  </article>
+</Shell>

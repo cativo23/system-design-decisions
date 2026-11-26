@@ -2,10 +2,6 @@
    Selectors target what MDX emits plus the mapped components, so card bodies carry no classes.
    Every animation here is covered by the single reduced-motion block in global.css. */
 
-/* ---------- article frame (interim until the shell wraps it) ---------- */
-body > main { position: relative; z-index: 1; max-width: 788px; margin-inline: auto; padding: 44px 24px 120px; }
-article { min-width: 0; }
-
 /* Load sequence: the first six blocks rise in turn. */
 article > :nth-child(-n + 6) { animation: rise 0.7s cubic-bezier(0.2, 0.7, 0.2, 1) both; animation-delay: calc(var(--d, 0) * 90ms + 300ms); }
 article > :nth-child(2) { --d: 1; } article > :nth-child(3) { --d: 2; } article > :nth-child(4) { --d: 3; }

@@ -1,0 +1,53 @@
+---
+// The catalog tree: one native <details> per domain (works with scripts blocked, FR-008),
+// cards as links or, when not written yet, text with a hidden "not yet available".
+// Persisted across navigations (R5); shell.ts re-marks the current card afterwards.
+import type { TreeDomain } from '../lib/layout/tree.ts';
+
+interface Props {
+  tree: TreeDomain[];
+}
+const { tree } = Astro.props;
+const pad = (n: number) => String(n).padStart(2, '0');
+---
+
+<nav id="tree" class="tree" aria-label="Catalog" transition:persist="tree">
+  <div class="root">~/catalog</div>
+  {
+    tree.map((d, i) => {
+      const last = i === tree.length - 1;
+      return (
+        <details class="dom" data-domain={d.number} open={d.open}>
+          <summary>
+            <span class="g">{last ? '└── ' : '├── '}</span>
+            <span class="dn">{pad(d.number)} {d.slug}</span>
+            <span class="bar" aria-label={`${d.read} of ${d.total} read`}>{d.meter}</span>
+          </summary>
+          <ul>
+            {d.cards.map((c, j) => {
+              const prefix = (last ? '    ' : '│   ') + (j === d.cards.length - 1 ? '└── ' : '├── ');
+              return (
+                <li>
+                  {c.href ? (
+                    <a class:list={['card', { here: c.current }]} href={c.href} data-id={c.id} aria-current={c.current ? 'page' : undefined}>
+                      <span class="g">{prefix}</span>
+                      <span class="cn">{c.label}</span>
+                      <span class="st" data-glyph={c.glyph} aria-hidden="true">{c.current ? '◀' : c.glyph}</span>
+                    </a>
+                  ) : (
+                    <span class="card planned" data-id={c.id}>
+                      <span class="g">{prefix}</span>
+                      <span class="cn">{c.label}</span>
+                      <span class="st" aria-hidden="true">{c.glyph}</span>
+                      <span class="sr-only">not yet available</span>
+                    </span>
+                  )}
+                </li>
+              );
+            })}
+          </ul>
+        </details>
+      );
+    })
+  }
+</nav>
