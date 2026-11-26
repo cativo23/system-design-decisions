@@ -38,7 +38,7 @@ Each slug is the card's permanent `id`. If a card is renamed, keep its slug.
 ## 05 · Distributed data & workflows
 - [ ] `idempotency`: Idempotency · **MVP**
 - [ ] `outbox-cdc`: Transactional outbox & CDC · **MVP**
-- [~] `saga`: Saga (2PC covered inside) · **MVP**. Draft content lives in `docs/mockups/saga-card.html`
+- [~] `saga`: Saga (2PC covered inside) · **MVP**. Live as the walking-skeleton sample; `[x]` after the Phase 6 review
 - [ ] `durable-execution`: Durable execution · **MVP**
 - [ ] `cqrs`: CQRS
 - [ ] `event-sourcing`: Event sourcing
