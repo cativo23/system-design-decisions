@@ -28,7 +28,7 @@ article { padding-block: 44px 120px; max-width: 740px; }
 .tree ul { list-style: none; margin: 0; padding: 0; }
 .tree .g { color: var(--line-strong); }
 .tree .dn, .tree .cn { flex: 1; }
-.tree .bar { opacity: 0.7; }
+.tree .bar { color: var(--fg-faint); } /* no opacity: a faded meter fell to 3:1 (FR-025) */
 .tree .card { color: var(--fg-muted); }
 .tree .card.planned { color: var(--fg-faint); }
 .tree a.here { color: var(--fg); background: linear-gradient(90deg, var(--accent-glow), transparent); }
