@@ -297,7 +297,7 @@ never committed.
 
 | Item | Fallback |
 |---|---|
-| `fontProviders.npm()` with the two Fontsource packages | `fontProviders.fontsource()` (verified) |
+| `fontProviders.npm()` with the two Fontsource packages | **Checked in T002 (2026-11-25): failed.** It resolved the packages but ignored the `400 600` range (warning "does not support weights 400 600") and copied 39 files. `fontProviders.fontsource()` gave exactly 3 woff2, 101.9 KB, so it is used and the two `@fontsource-variable/*` packages were removed (unused). Build now needs network for the fonts. |
 | Persisted tree keeps `scrollTop` | save/restore on the swap events (R5) |
 | `steps(var(--len))` | per-title inline `width` and `steps(14)` (R9) |
 | Astro 7 `compressHTML: 'jsx'` default keeps the tree's padded spaces | build the padded strings in one expression, or set `compressHTML: true` |
