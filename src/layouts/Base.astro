@@ -1,5 +1,10 @@
 ---
 // Every page is noindexed until launch (FR-021); nginx also sends X-Robots-Tag.
+import { Font } from 'astro:assets';
+import { ClientRouter } from 'astro:transitions';
+import '../styles/tokens.css';
+import '../styles/global.css';
+
 interface Props {
   title: string;
 }
@@ -12,6 +17,9 @@ const { title } = Astro.props;
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <meta name="robots" content="noindex, nofollow" />
     <title>{title}</title>
+    <Font cssVariable="--font-mono" preload />
+    <Font cssVariable="--font-sans" preload />
+    <ClientRouter />
   </head>
   <body>
     <slot />

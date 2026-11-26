@@ -1,0 +1,22 @@
+---
+// Mapped to `h2` in card bodies: adds the `##` marker and the anchor id from the template table.
+// For "In the wild" it also renders the `ls` command line that opens the listing.
+import { getEntry } from 'astro:content';
+import { TEMPLATE } from '../lib/cards/template.ts';
+
+const title = (await Astro.slots.render('default')).trim();
+const section = TEMPLATE.find((s) => s.title === title);
+const card = section?.id === 'wild' ? await getEntry('cards', Astro.params.id!) : undefined;
+---
+
+<h2 id={section?.id}>
+  {section?.id !== 'tldr' && <span class="hash" aria-hidden="true">##</span>}{title}
+</h2>
+{
+  card && (
+    <div class="cmdline">
+      <span class="sym">❯</span> <span class="c">ls ~/in-the-wild/{card.data.id}</span>{' '}
+      <span class="comment"># volatile · verified {card.data.reviewed}</span>
+    </div>
+  )
+}

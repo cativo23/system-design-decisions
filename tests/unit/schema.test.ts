@@ -10,7 +10,7 @@ const VALID = {
   reviewed: '2026-11',
   tags: ['transactions'],
   aliases: ['distributed transactions'],
-  related: ['outbox-cdc'],
+  related: [{ id: 'outbox-cdc', why: 'Publish events reliably from each step' }],
 };
 
 function issues(overrides: Record<string, unknown>) {
@@ -90,7 +90,7 @@ describe('cardSchema', () => {
     });
   });
 
-  describe.each(['tags', 'aliases', 'related'])('Card.%s', (field) => {
+  describe.each(['tags', 'aliases'])('Card.%s', (field) => {
     it('should accept an empty list', () => {
       expect(issues({ [field]: [] })).toEqual([]);
     });
@@ -109,6 +109,48 @@ describe('cardSchema', () => {
 
     it('should reject a value that is not a list', () => {
       expect(issues({ [field]: 'a' })).toEqual([{ path: field, message: expect.stringContaining('list') }]);
+    });
+  });
+
+  describe('Card.related', () => {
+    const entry = (id: string, why = 'a reason') => ({ id, why });
+
+    it('should accept an empty list', () => {
+      expect(issues({ related: [] })).toEqual([]);
+    });
+
+    it('should accept { id, why } entries', () => {
+      expect(issues({ related: [entry('a'), entry('b')] })).toEqual([]);
+    });
+
+    it('should reject a plain string entry', () => {
+      expect(issues({ related: ['outbox-cdc'] })).toEqual([{ path: 'related.0', message: expect.any(String) }]);
+    });
+
+    it('should reject a blank why and expose its path', () => {
+      expect(issues({ related: [entry('a', '  ')] })).toEqual([
+        { path: 'related.0.why', message: expect.stringContaining('blank') },
+      ]);
+    });
+
+    it('should reject a missing why', () => {
+      expect(issues({ related: [{ id: 'a' }] })).toEqual([{ path: 'related.0.why', message: expect.any(String) }]);
+    });
+
+    it('should reject an id that is not a slug', () => {
+      expect(issues({ related: [entry('Not A Slug')] })).toEqual([
+        { path: 'related.0.id', message: expect.stringContaining('slug') },
+      ]);
+    });
+
+    it('should reject a duplicate id and name it', () => {
+      expect(issues({ related: [entry('a'), entry('b'), entry('a')] })).toEqual([
+        { path: 'related', message: expect.stringContaining('duplicate "a"') },
+      ]);
+    });
+
+    it('should reject a value that is not a list', () => {
+      expect(issues({ related: 'a' })).toEqual([{ path: 'related', message: expect.stringContaining('list') }]);
     });
   });
 });

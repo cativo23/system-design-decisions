@@ -34,6 +34,19 @@ describe('validate-cards CLI', () => {
     expect(code).toBe(1);
     const seededRules = readdirSync(new URL('../fixtures/broken/cards/', import.meta.url))
       .map((f) => f.replace(/(-twin)?\.mdx$/, ''));
+    // Card format v2 codes (SC-008): each needs its own failing fixture, so none can be dropped silently.
+    const v2Rules = [
+      'tldr-shape',
+      'related-why-missing',
+      'use-avoid-shape',
+      'tradeoffs-shape',
+      'meter-missing',
+      'meter-range',
+      'wild-entry-malformed',
+      'pitfall-malformed',
+      'source-malformed',
+    ];
+    for (const rule of v2Rules) expect(seededRules, `no fixture for ${rule}`).toContain(rule);
     for (const rule of new Set(seededRules)) {
       expect(stdout, `missing ${rule}`).toMatch(new RegExp(`^✗ \\S+/${rule}\\.mdx \\(\\S+\\) ${rule}: `, 'm'));
     }

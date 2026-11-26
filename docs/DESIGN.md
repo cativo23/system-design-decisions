@@ -123,9 +123,9 @@ Every card has the same sections in the same order. Validation enforces this.
 | Framework | **Astro**, latest stable at the time of scaffolding, set up via the official install guide |
 | Content | **MDX** in Astro content collections with **Zod** schemas |
 | Interactivity | **React islands** only where needed: simulator (`client:visible`), palette (`client:idle`), progress. Everything else is static HTML |
-| Navigation | Astro View Transitions with `transition:persist` for the shell (tree, status line, palette) |
+| Navigation | Astro `<ClientRouter />` (View Transitions). Phase 2 persists the tree only (`transition:persist`); the top bar and status line re-render per page because their fields change on every card. The palette is a Phase 3 matter |
 | Search | **Pagefind**, indexed at build time, so there is no search service |
-| Styling | CSS custom-property tokens from the mockup. Whether to add Tailwind v4 is decided in Phase 2 `/speckit-plan` |
+| Styling | **Plain CSS** with the mockup's custom-property tokens, no Tailwind (decided in Phase 2: MDX output carries no classes, so utility classes cannot reach it). Fonts are **self-hosted** through Astro's Fonts API (Geist Mono and Inter, `fontsource` provider): no third-party origin |
 | Progress storage | `ProgressStore` interface → `LocalProgressStore` (localStorage) in v1 |
 | Validation | Schema plus custom validators in CI: required sections, `related` ids exist, staleness report |
 | Hosting | **polaris2**: Docker image (static build served by `nginx:alpine`) behind Traefik with Let's Encrypt. No paid services |
@@ -158,7 +158,7 @@ The future Sync phase switches to Astro's Node adapter (static pages stay preren
 
 ## 8. Open questions
 - **Name** of the site. The domain is decided: `architecture.cativo.dev` (D13).
-- **Tailwind v4 or plain CSS tokens**: decide in the Phase 2 plan.
+- ~~Tailwind v4 or plain CSS tokens~~: closed in Phase 2, plain CSS (§6).
 - **License** for the content and code before going public.
 - **Analytics:** none, or something self-hosted later.
 

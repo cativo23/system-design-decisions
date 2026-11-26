@@ -1,0 +1,26 @@
+/* Design tokens, ported from docs/mockups/saga-card.html (single deliberate dark theme).
+   --fg-faint is #7d828c, not the mockup's #5d626b, to reach 4.5:1 (clarification 2, research.md R10). */
+:root {
+  color-scheme: dark;
+  --bg: #07080a;
+  --bg-raised: #0c0d10;
+  --bg-hover: #14161a;
+  --line: #1a1c21;
+  --line-strong: #272a31;
+  --fg: #eceef2;
+  --fg-muted: #9a9fa8;
+  --fg-faint: #7d828c;
+  --accent: #4ade80;
+  --accent-glow: rgba(74, 222, 128, 0.13);
+  --run: #5ee7ff; /* in-flight state: must read differently from green "done" */
+  --ok: #4ade80;
+  --ok-soft: rgba(74, 222, 128, 0.1);
+  --info: #5ea8ff;
+  --info-soft: rgba(94, 168, 255, 0.12);
+  --warn: #e2b340;
+  --warn-soft: rgba(226, 179, 64, 0.12);
+  --bad: #f2555a;
+  --bad-soft: rgba(242, 85, 90, 0.12);
+  --mono: var(--font-mono), "JetBrains Mono", ui-monospace, "SFMono-Regular", Menlo, monospace;
+  --sans: var(--font-sans), ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
+}

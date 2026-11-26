@@ -13,22 +13,28 @@ const topics: TopicEntry[] = [
   { id: 'outbox-cdc', title: 'Transactional outbox & CDC', domainNumber: 5, state: 'pending' },
 ];
 
+const rel = (id: string) => ({ id, why: `because ${id}` });
+
 describe('resolveRelated', () => {
   it('should link a written card with its Card.title and Card.status', () => {
-    expect(resolveRelated(['idempotency'], written, topics)).toEqual([
-      { id: 'idempotency', href: '/cards/idempotency/', title: 'Idempotency', status: 'trial', available: true },
+    expect(resolveRelated([rel('idempotency')], written, topics)).toEqual([
+      { id: 'idempotency', why: 'because idempotency', href: '/cards/idempotency/', title: 'Idempotency', status: 'trial', available: true },
     ]);
   });
 
   it('should mark a planned but unwritten card as unavailable, titled from TopicEntry.title, with no href', () => {
-    const [item] = resolveRelated(['outbox-cdc'], written, topics);
-    expect(item).toEqual({ id: 'outbox-cdc', title: 'Transactional outbox & CDC', available: false });
+    const [item] = resolveRelated([rel('outbox-cdc')], written, topics);
+    expect(item).toEqual({ id: 'outbox-cdc', why: 'because outbox-cdc', title: 'Transactional outbox & CDC', available: false });
     expect(item).not.toHaveProperty('href');
   });
 
   it('should preserve the input order', () => {
     const ids = ['outbox-cdc', 'saga', 'idempotency'];
-    expect(resolveRelated(ids, written, topics).map((r) => r.id)).toEqual(ids);
+    expect(resolveRelated(ids.map(rel), written, topics).map((r) => r.id)).toEqual(ids);
+  });
+
+  it('should carry the why of each entry', () => {
+    expect(resolveRelated([rel('saga')], written, topics)[0]).toMatchObject({ why: 'because saga' });
   });
 
   it('should return [] for an empty list', () => {
@@ -36,6 +42,8 @@ describe('resolveRelated', () => {
   });
 
   it('should fall back to the id as the title for an id in neither list (the validator rejects these first)', () => {
-    expect(resolveRelated(['ghost'], written, topics)).toEqual([{ id: 'ghost', title: 'ghost', available: false }]);
+    expect(resolveRelated([rel('ghost')], written, topics)).toEqual([
+      { id: 'ghost', why: 'because ghost', title: 'ghost', available: false },
+    ]);
   });
 });

@@ -1,0 +1,13 @@
+---
+// A 0–6 meter for the Trade-offs table; more filled is better for the reader.
+// The glyphs are not read aloud: the label carries the value (contracts/ui-contract.md § Card sections).
+import { meterString } from '../lib/layout/meter.ts';
+
+interface Props {
+  n: number;
+}
+const { n } = Astro.props;
+const glyphs = meterString(n);
+---
+
+<span class="meter" role="img" aria-label={`${n} of 6`}><span class="f">{glyphs.slice(0, n)}</span><span class="e">{glyphs.slice(n)}</span></span>

@@ -1,0 +1,43 @@
+---
+// The fixed frame around a card: top bar, tree, reading column, table of contents, status line.
+// The tree is persisted across navigations; everything else re-renders per page (R5).
+import { getCollection } from 'astro:content';
+import StatusLine from '../components/StatusLine.astro';
+import Toc from '../components/Toc.astro';
+import TopBar from '../components/TopBar.astro';
+import Tree from '../components/Tree.astro';
+import { domainBySlug } from '../lib/domains.ts';
+import { buildTree } from '../lib/layout/tree.ts';
+import { parseTopics } from '../lib/topics.ts';
+import Base from './Base.astro';
+import topicsMarkdown from '../../docs/TOPICS.md?raw';
+import '../styles/shell.css';
+
+interface Props {
+  title: string;
+  card: { id: string; domain: string; status: string };
+}
+const { title, card } = Astro.props;
+
+// Topic list errors are the validator's job; the page only needs the ids and titles.
+const { topics } = parseTopics(topicsMarkdown, 'docs/TOPICS.md');
+const writtenIds = new Set((await getCollection('cards')).map((c) => c.data.id));
+const tree = buildTree(topics, writtenIds, card.id);
+const d = domainBySlug(card.domain)!;
+const here = tree.find((t) => t.number === d.number)!;
+---
+
+<Base title={title}>
+  <a class="skip-link" href="#main">Skip to content</a>
+  <TopBar />
+  <div class="shell">
+    <Tree tree={tree} />
+    <main id="main" tabindex="-1"><slot /></main>
+    <Toc />
+  </div>
+  <div class="backdrop" hidden></div>
+  <StatusLine domain={`${String(d.number).padStart(2, '0')} ${d.slug}`} file={`${card.id}.md`} status={card.status} read={here.read} total={here.total} />
+  <script>
+    import '../scripts/shell.ts';
+  </script>
+</Base>

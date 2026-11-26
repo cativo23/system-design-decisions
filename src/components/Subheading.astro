@@ -1,0 +1,7 @@
+---
+// Mapped to `h3`: the two Use/Avoid headings get a data-kind hook for the diff look.
+const text = (await Astro.slots.render('default')).trim();
+const kind = text === 'Use it when' ? 'use' : text === 'Avoid it when' ? 'avoid' : undefined;
+---
+
+<h3 data-kind={kind}>{text}</h3>

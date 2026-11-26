@@ -1,8 +1,17 @@
 ---
 import { getCollection, render } from 'astro:content';
+import Meter from '../../components/Meter.astro';
+import Pager from '../../components/Pager.astro';
+import Pitfall from '../../components/Pitfall.astro';
 import RelatedCards from '../../components/RelatedCards.astro';
-import Base from '../../layouts/Base.astro';
+import SectionHeading from '../../components/SectionHeading.astro';
+import Source from '../../components/Source.astro';
+import Subheading from '../../components/Subheading.astro';
+import TableFrame from '../../components/TableFrame.astro';
+import Shell from '../../layouts/Shell.astro';
 import { domainBySlug } from '../../lib/domains.ts';
+import { isTypable } from '../../lib/layout/typed-title.ts';
+import '../../styles/card.css';
 
 export async function getStaticPaths() {
   const cards = await getCollection('cards');
@@ -10,26 +19,27 @@ export async function getStaticPaths() {
 }
 
 const { card } = Astro.props;
-const { title, domain, status, reviewed, tags } = card.data;
+const { id, title, domain, status, reviewed, tags } = card.data;
 const { Content } = await render(card);
+const d = domainBySlug(domain)!;
+const typed = isTypable(title);
 ---
 
-<Base title={`${title} · Systems Field Guide`}>
-  <main>
-    <article>
-      <h1>{title}</h1>
-      <dl>
-        <dt>Domain</dt>
-        <dd>{domainBySlug(domain)!.name}</dd>
-        <dt>Status</dt>
-        <dd>{status.toUpperCase()}</dd>
-        <dt>Reviewed</dt>
-        <dd>{reviewed}</dd>
-        <dt>Tags</dt>
-        <dd>{tags.join(', ')}</dd>
-      </dl>
-      {/* RelatedCards is passed in so cards use <RelatedCards /> without importing it (research.md R6). */}
-      <Content components={{ RelatedCards }} />
-    </article>
-  </main>
-</Base>
+<Shell title={`${title} · Systems Field Guide`} card={{ id, domain, status }}>
+  <article>
+      <div class="prompt">
+        <span class="path">~/catalog/{String(d.number).padStart(2, '0')}-{d.slug}</span><span class="sym">❯</span><span class="cmd">cat {id}.md</span>
+      </div>
+      <h1 class:list={{ 'is-typed': typed }} style={typed ? `--len:${title.trim().length}` : undefined}>
+        <span class="typed">{title}</span>
+      </h1>
+      <div class="meta">
+        <span class={`radar ${status}`}>{status.toUpperCase()}</span>
+        <span>reviewed {reviewed}</span>
+        {tags.map((tag) => <span class="tag">{tag}</span>)}
+      </div>
+      {/* Components are passed in so cards use them without importing (research.md R6). */}
+      <Content components={{ Meter, Pitfall, Source, RelatedCards, h2: SectionHeading, h3: Subheading, table: TableFrame }} />
+      <Pager />
+  </article>
+</Shell>

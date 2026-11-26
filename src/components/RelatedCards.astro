@@ -1,6 +1,7 @@
 ---
-// Rendered inside a card's "## Related" section (research.md R6). The ids come
-// from the card's frontmatter, so the body never repeats them.
+// Rendered inside a card's "## Related" section (research.md R6). The ids and reasons come
+// from the card's frontmatter, so the body never repeats them. A card that is not written
+// yet shows as text with a hidden "not yet available": no badge, link or `cd` hint (FR-018).
 import { getCollection, getEntry } from 'astro:content';
 import { resolveRelated } from '../lib/cards/related.ts';
 import { parseTopics } from '../lib/topics.ts';
@@ -13,16 +14,27 @@ const { topics } = parseTopics(topicsMarkdown, 'docs/TOPICS.md');
 const items = resolveRelated(card?.data.related ?? [], written, topics);
 ---
 
-<ul>
+<div class="related">
   {
     items.map((item) =>
       item.available ? (
-        <li>
-          <a href={item.href}>{item.title}</a> · {item.status.toUpperCase()}
-        </li>
+        <a class="rel" href={item.href}>
+          <span class="top">
+            <b>{item.title}</b>
+            <span class={`radar sm ${item.status}`}>{item.status.toUpperCase()}</span>
+          </span>
+          <span class="why">{item.why}</span>
+          <span class="cd" aria-hidden="true">cd ../{item.id}</span>
+        </a>
       ) : (
-        <li>{item.title} (not yet available)</li>
+        <div class="rel planned">
+          <span class="top">
+            <b>{item.title}</b>
+          </span>
+          <span class="why">{item.why}</span>
+          <span class="sr-only">not yet available</span>
+        </div>
       ),
     )
   }
-</ul>
+</div>

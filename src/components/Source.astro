@@ -1,0 +1,10 @@
+---
+// One "Go deeper" row: a link with its kind label. The arrow is decoration.
+interface Props {
+  kind: string;
+  href: string;
+}
+const { kind, href } = Astro.props;
+---
+
+<a class="source" href={href} rel="noopener"><span class="source-kind">[{kind}]</span> <span class="source-title"><slot /></span> <span class="source-out" aria-hidden="true">↗</span><span class="sr-only"> (opens an external site)</span></a>
