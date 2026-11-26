@@ -1,4 +1,5 @@
 // DOM glue only: every decision comes from src/lib/layout/. Text and attributes only, no HTML strings.
+import { nextFocusIndex, nextMenuState, type MenuEvent, type MenuState } from '../lib/layout/menu.ts';
 import { scrollLabel } from '../lib/layout/scroll.ts';
 import { currentSection } from '../lib/layout/toc.ts';
 import { treeCurrent } from '../lib/layout/tree.ts';
@@ -103,3 +104,47 @@ function focusTitle() {
   h1.setAttribute('tabindex', '-1');
   h1.focus({ preventScroll: true });
 }
+
+// ---------- phone menu (research.md R7, R8) ----------
+// Delegated listeners, bound once: the top bar re-renders on every page, the tree does not.
+let menu: MenuState = 'closed';
+const INERT_REGIONS = 'header, main, .toc';
+
+function dispatch(event: MenuEvent) {
+  const next = nextMenuState(menu, event);
+  if (next === menu) return;
+  menu = next;
+  const open = menu === 'open';
+  document.body.dataset.menu = menu;
+  document.querySelector<HTMLElement>('.backdrop')!.hidden = !open;
+  for (const region of document.querySelectorAll<HTMLElement>(INERT_REGIONS)) region.inert = open;
+  const button = document.querySelector<HTMLElement>('.menu-btn');
+  button?.setAttribute('aria-expanded', String(open));
+  if (open) document.querySelector<HTMLElement>('.tree-close')?.focus();
+  else button?.focus();
+}
+
+document.addEventListener('click', (e) => {
+  const target = e.target as Element;
+  if (target.closest('.menu-btn')) dispatch('open');
+  else if (target.closest('.tree-close')) dispatch('close');
+  else if (target.closest('.backdrop')) dispatch('backdrop');
+  else if (target.closest('#tree a')) dispatch('navigate');
+});
+
+document.addEventListener('keydown', (e) => {
+  if (menu !== 'open') return;
+  if (e.key === 'Escape') return dispatch('escape');
+  if (e.key !== 'Tab') return;
+  const items = [...document.querySelectorAll<HTMLElement>('#tree .tree-close, #tree summary, #tree a')].filter((el) => el.offsetParent !== null);
+  const index = items.indexOf(document.activeElement as HTMLElement);
+  const next = nextFocusIndex(index, items.length, e.shiftKey);
+  // Only take over at the ends; everywhere else the browser's own Tab order is the right one.
+  if (next >= 0 && (e.shiftKey ? index <= 0 : index === items.length - 1)) {
+    e.preventDefault();
+    items[next].focus();
+  }
+});
+
+document.addEventListener('astro:before-swap', () => dispatch('navigate'));
+window.matchMedia('(min-width: 881px)').addEventListener('change', (e) => e.matches && dispatch('close'));

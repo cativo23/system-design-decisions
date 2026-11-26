@@ -34,6 +34,7 @@ const here = tree.find((t) => t.number === d.number)!;
     <main id="main"><slot /></main>
     <Toc />
   </div>
+  <div class="backdrop" hidden></div>
   <StatusLine domain={`${String(d.number).padStart(2, '0')} ${d.slug}`} file={`${card.id}.md`} status={card.status} read={here.read} total={here.total} />
   <script>
     import '../scripts/shell.ts';
