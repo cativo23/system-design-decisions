@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { checkResponse, describeFetchError } from '../../scripts/health-gate.ts';
+import { checkResponse, describeFetchError, findFontHref } from '../../scripts/health-gate.ts';
 
 const SHA = 'abc1234';
 const ROBOTS_META = '<meta name="robots" content="noindex, nofollow">';
@@ -128,5 +128,62 @@ describe('describeFetchError', () => {
   it('should fall back to the error message when there is no cause (e.g. a timeout)', () => {
     const timeout = new DOMException('The operation was aborted due to timeout', 'TimeoutError');
     expect(describeFetchError(timeout)).toBe('The operation was aborted due to timeout');
+  });
+});
+
+describe('checkResponse: font (R13)', () => {
+  const FONT = '/_astro/fonts/abc.woff2';
+  const OK = { ...NOINDEX, 'Cache-Control': 'public, max-age=31536000, immutable' };
+  const check = (r: ReturnType<typeof res>) => checkResponse('font', r, SHA, FONT);
+
+  it('should pass with 200, noindex and an immutable cache header', () => {
+    expect(check(res(200, OK, ''))).toEqual([]);
+  });
+
+  it('should fail on a non-200 status and name the font URL', () => {
+    expect(check(res(404, OK, ''))).toEqual([expect.stringMatching(/^GET \/_astro\/fonts\/abc\.woff2: .*404/)]);
+  });
+
+  it('should fail when X-Robots-Tag is missing (a location block dropped it)', () => {
+    expect(check(res(200, { 'Cache-Control': OK['Cache-Control'] }, ''))).toEqual([
+      'GET /_astro/fonts/abc.woff2: X-Robots-Tag missing',
+    ]);
+  });
+
+  it('should fail when X-Robots-Tag lacks noindex', () => {
+    expect(check(res(200, { ...OK, 'X-Robots-Tag': 'nofollow' }, ''))).toEqual([expect.stringMatching(/noindex/)]);
+  });
+
+  it('should fail when Cache-Control lacks immutable', () => {
+    expect(check(res(200, { ...NOINDEX, 'Cache-Control': 'max-age=60' }, ''))).toEqual([
+      expect.stringMatching(/^GET \/_astro\/fonts\/abc\.woff2: .*immutable/),
+    ]);
+  });
+
+  it('should fail when Cache-Control is missing', () => {
+    expect(check(res(200, NOINDEX, ''))).toEqual([expect.stringMatching(/Cache-Control.*immutable/)]);
+  });
+
+  it('should fail on a redirect', () => {
+    expect(check(res(301, { Location: '/x' }, ''))).toEqual([expect.stringMatching(/301/)]);
+  });
+});
+
+describe('findFontHref', () => {
+  it('should return the first preloaded font href', () => {
+    const body = html('', '<link rel="preload" href="/_astro/fonts/a.woff2" as="font" type="font/woff2" crossorigin><link rel="preload" href="/_astro/fonts/b.woff2" as="font">');
+    expect(findFontHref(body)).toBe('/_astro/fonts/a.woff2');
+  });
+
+  it('should read attributes in any order', () => {
+    expect(findFontHref(html('', '<link as="font" crossorigin href="/f.woff2" rel="preload">'))).toBe('/f.woff2');
+  });
+
+  it('should ignore preloads that are not fonts', () => {
+    expect(findFontHref(html('', '<link rel="preload" href="/a.css" as="style">'))).toBeNull();
+  });
+
+  it('should return null when there is no preload link', () => {
+    expect(findFontHref(html('<p>none</p>'))).toBeNull();
   });
 });

@@ -3,7 +3,7 @@
 import { setTimeout as sleep } from 'node:timers/promises';
 import { parseArgs } from 'node:util';
 
-export type Kind = 'version' | 'index' | 'card';
+export type Kind = 'version' | 'index' | 'card' | 'font';
 
 export interface GateResponse {
   status: number;
@@ -11,17 +11,30 @@ export interface GateResponse {
   body: string;
 }
 
-export const PATHS: Record<Kind, string> = { version: '/version.txt', index: '/', card: '/cards/saga/' };
+// The font's path is read from the index response, so it has no fixed entry here.
+export const PATHS: Record<Exclude<Kind, 'font'>, string> = { version: '/version.txt', index: '/', card: '/cards/saga/' };
 
 const ROBOTS_META = /<meta\b(?=[^>]*\bname=["']?robots\b)(?=[^>]*\bcontent=["'][^"']*noindex)[^>]*>/i;
 const SAGA_LINK = /\bhref=["']?\/cards\/saga\/(?=["'\s>])/;
 // Inline elements inside the heading are allowed (the typed title wraps the text in a <span>).
 const SAGA_H1 = /<h1\b[^>]*>(?:\s|<[^>]+>)*Saga(?:\s|<\/?[^>]+>)*<\/h1>/i;
 
-/** Returns one message per failed assertion, each naming the URL path; [] when the response passes. */
-export function checkResponse(kind: Kind, { status, headers, body }: GateResponse, expectedVersion: string): string[] {
+/** The first `<link rel="preload" as="font">` href in a page, or null. */
+export function findFontHref(html: string): string | null {
+  for (const [, attrs] of html.matchAll(/<link\b([^>]*)>/gi)) {
+    if (!/\brel=["']?preload\b/i.test(attrs) || !/\bas=["']?font\b/i.test(attrs)) continue;
+    const href = attrs.match(/\bhref=(?:"([^"]*)"|'([^']*)'|([^\s>]+))/i);
+    if (href) return href[1] ?? href[2] ?? href[3];
+  }
+  return null;
+}
+
+/** Returns one message per failed assertion, each naming the URL path; [] when the response passes.
+ * `path` names the URL for the `font` kind, whose path is only known at run time. */
+export function checkResponse(kind: Kind, { status, headers, body }: GateResponse, expectedVersion: string, path?: string): string[] {
   const problems: string[] = [];
-  const fail = (message: string) => problems.push(`GET ${PATHS[kind]}: ${message}`);
+  const where = kind === 'font' ? (path ?? '(font)') : PATHS[kind];
+  const fail = (message: string) => problems.push(`GET ${where}: ${message}`);
 
   if (status !== 200) {
     fail(
@@ -41,6 +54,11 @@ export function checkResponse(kind: Kind, { status, headers, body }: GateRespons
   const robotsTag = headers.get('x-robots-tag');
   if (robotsTag === null) fail('X-Robots-Tag missing');
   else if (!/noindex/i.test(robotsTag)) fail(`X-Robots-Tag "${robotsTag}" lacks noindex`);
+  if (kind === 'font') {
+    // Proves the /_astro/ location kept X-Robots-Tag and the long cache (R12, R13).
+    if (!/\bimmutable\b/i.test(headers.get('cache-control') ?? '')) fail(`Cache-Control "${headers.get('cache-control') ?? ''}" lacks immutable`);
+    return problems;
+  }
   if (!ROBOTS_META.test(body)) fail('robots meta tag with noindex missing');
   if (kind === 'index' && !SAGA_LINK.test(body)) fail('no link to /cards/saga/');
   if (kind === 'card' && !SAGA_H1.test(body)) fail('H1 "Saga" missing');
@@ -76,19 +94,19 @@ function readArgs(): { origin: URL; version: string } {
   }
 }
 
-async function request(origin: URL, kind: Kind, version: string) {
+async function request(origin: URL, kind: Kind, version: string, path: string = kind === 'font' ? '' : PATHS[kind]) {
   const started = performance.now();
   const elapsed = () => Math.round(performance.now() - started);
   try {
     // Node's fetch verifies TLS by default; no insecure flag is ever set.
-    const res = await fetch(new URL(PATHS[kind], origin), {
+    const res = await fetch(new URL(path, origin), {
       redirect: 'manual',
       signal: AbortSignal.timeout(REQUEST_TIMEOUT_MS),
     });
     const body = await res.text();
-    return { kind, ms: elapsed(), problems: checkResponse(kind, { status: res.status, headers: res.headers, body }, version) };
+    return { kind, path, body, ms: elapsed(), problems: checkResponse(kind, { status: res.status, headers: res.headers, body }, version, path) };
   } catch (error) {
-    return { kind, ms: elapsed(), problems: [`GET ${PATHS[kind]}: ${describeFetchError(error)}`] };
+    return { kind, path, body: '', ms: elapsed(), problems: [`GET ${path}: ${describeFetchError(error)}`] };
   }
 }
 
@@ -99,10 +117,14 @@ async function main() {
 
   for (;;) {
     const results = await Promise.all(kinds.map((k) => request(origin, k, version)));
+    // Fourth request: a font file named by the index page (R13).
+    const fontHref = findFontHref(results.find((r) => r.kind === 'index')?.body ?? '');
+    if (fontHref === null) results.push({ kind: 'font', path: '/', body: '', ms: 0, problems: ['GET /: no font preload found'] });
+    else results.push(await request(origin, 'font', version, new URL(fontHref, origin).pathname));
     const problems = results.flatMap((r) => r.problems);
     if (problems.length === 0) {
       console.log(`✓ site responds (version ${version})`);
-      for (const r of results) console.log(`  GET ${PATHS[r.kind]}  ${r.ms} ms`);
+      for (const r of results) console.log(`  GET ${r.path}  ${r.ms} ms`);
       return;
     }
     if (Date.now() + ROUND_INTERVAL_MS > deadline) {
