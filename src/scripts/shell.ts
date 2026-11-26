@@ -151,3 +151,12 @@ document.addEventListener('keydown', (e) => {
 
 document.addEventListener('astro:before-swap', () => dispatch('navigate'));
 window.matchMedia('(min-width: 881px)').addEventListener('change', (e) => e.matches && dispatch('close'));
+
+// Related spotlight: the glow follows the pointer through two custom properties (set via the CSSOM, no HTML).
+document.addEventListener('pointermove', (e) => {
+  const card = (e.target as Element).closest?.<HTMLElement>('.rel');
+  if (!card) return;
+  const box = card.getBoundingClientRect();
+  card.style.setProperty('--mx', `${e.clientX - box.left}px`);
+  card.style.setProperty('--my', `${e.clientY - box.top}px`);
+});
