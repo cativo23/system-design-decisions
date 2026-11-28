@@ -60,3 +60,9 @@ export function buildCatalog(topics: TopicEntry[], cards: PublishedCard[]): Doma
     return { domain, entries, published, total: entries.length, label: `${published} / ${entries.length}`, meter: domainMeter(published, entries.length) };
   });
 }
+
+/** Where the learning path begins: the first published entry in path order, or null while nothing is published. */
+export function startPoint(catalog: DomainSummary[]): CatalogEntry | null {
+  return catalog.flatMap((d) => d.entries).find((e) => e.published) ?? null;
+}
+

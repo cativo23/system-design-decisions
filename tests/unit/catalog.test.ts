@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { buildCatalog, toPublished } from '../../src/lib/discovery/catalog.ts';
+import { buildCatalog, startPoint, toPublished } from '../../src/lib/discovery/catalog.ts';
 import { DOMAINS } from '../../src/lib/domains.ts';
 import { CARDS, TOPICS } from '../helpers/discovery-fixtures.ts';
 
@@ -75,3 +75,26 @@ describe('toPublished', () => {
     expect(toPublished([{ data: { ...first, related: [] } }])).toEqual([first]);
   });
 });
+
+describe('startPoint', () => {
+  it('should be the first published entry in path order, skipping unwritten ones before it', () => {
+    // Domain 1 starts with quality-attributes, which is published; moving it to unpublished must advance the start.
+    expect(startPoint(catalog)?.id).toBe('quality-attributes');
+    const withoutFirst = buildCatalog(TOPICS, CARDS.filter((c) => c.id !== 'quality-attributes'));
+    expect(startPoint(withoutFirst)?.id).toBe('consistency');
+  });
+
+  it('should skip whole domains with nothing published', () => {
+    const onlySaga = buildCatalog(TOPICS, CARDS.filter((c) => c.id === 'saga'));
+    expect(startPoint(onlySaga)?.id).toBe('saga');
+  });
+
+  it('should be null when nothing is published', () => {
+    expect(startPoint(buildCatalog(TOPICS, []))).toBeNull();
+  });
+
+  it('should return a published entry with its link', () => {
+    expect(startPoint(catalog)).toMatchObject({ published: true, href: '/cards/quality-attributes/' });
+  });
+});
+
