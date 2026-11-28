@@ -22,6 +22,7 @@ export type RuleCode =
   | 'related-self'
   | 'id-duplicate'
   | 'id-not-in-topics'
+  | 'order-matches-topics'
   | 'no-cards'
   | 'topics-invalid';
 

@@ -21,3 +21,4 @@
 - [ ] `wild-entry-malformed`: wild-entry-malformed
 - [ ] `pitfall-malformed`: pitfall-malformed
 - [ ] `source-malformed`: source-malformed
+- [ ] `order-matches-topics`: order-matches-topics
