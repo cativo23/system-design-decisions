@@ -25,7 +25,7 @@ const d = domainBySlug(domain)!;
 const typed = isTypable(title);
 ---
 
-<Shell title={`${title} · Systems Field Guide`} card={{ id, domain, status }}>
+<Shell title={`${title} · Systems Field Guide`} kind="card" card={{ id, domain, status }}>
   <article>
       <div class="prompt">
         <span class="path">~/catalog/{String(d.number).padStart(2, '0')}-{d.slug}</span><span class="sym">❯</span><span class="cmd">cat {id}.md</span>

@@ -93,7 +93,13 @@ function markCurrentCard() {
     const glyph = a.querySelector<HTMLElement>('.st');
     if (glyph) glyph.textContent = here ? '◀' : (glyph.dataset.glyph ?? '○');
   }
-  if (!current) return;
+  if (!current) {
+    // A domain page opens its own domain; every other page leaves the reader's open/closed state alone.
+    const slug = window.location.pathname.match(/^\/catalog\/([^/]+)\/$/)?.[1];
+    const own = slug ? tree.querySelector<HTMLDetailsElement>(`details[data-slug="${CSS.escape(slug)}"]`) : null;
+    if (own) own.open = true;
+    return;
+  }
 
   const details = tree.querySelector<HTMLDetailsElement>(`details[data-domain="${current.domain}"]`);
   if (details) details.open = true;

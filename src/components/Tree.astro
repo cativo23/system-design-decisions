@@ -18,7 +18,7 @@ const pad = (n: number) => String(n).padStart(2, '0');
     tree.map((d, i) => {
       const last = i === tree.length - 1;
       return (
-        <details class="dom" data-domain={d.number} open={d.open}>
+        <details class="dom" data-domain={d.number} data-slug={d.slug} open={d.open}>
           <summary>
             <span class="g">{last ? '└── ' : '├── '}</span>
             <span class="dn">{pad(d.number)} {d.slug}</span>
