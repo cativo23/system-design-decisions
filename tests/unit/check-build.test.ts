@@ -218,7 +218,7 @@ describe('measurePage and formatReport', () => {
 });
 
 describe('checkPage: structure (contracts/build-budget.md § Structure checks)', () => {
-  const problems = (html: string, opts?: { index?: boolean }) => checkPage(html, {}, opts);
+  const problems = (html: string) => checkPage(html, {});
 
   it('should pass a page with the full structure', () => {
     expect(problems(page())).toEqual([]);
@@ -281,12 +281,13 @@ describe('checkPage: structure (contracts/build-budget.md § Structure checks)',
     expect(checkPage(html, { '/_astro/a.css': css })).toEqual([]);
   });
 
-  it('should exempt the index page from the skip link and landmark checks only', () => {
+  it('should not exempt the root page: the home has the shell, so it needs the skip link and landmarks too', () => {
     const body = '<main><h1>Systems Field Guide</h1></main>';
-    expect(problems(page({ body }), { index: true })).toEqual([]);
-    expect(problems(page({ body: '<main></main>' }), { index: true })).toEqual([expect.stringMatching(/<h1>/)]);
-    expect(problems(page({ body }).replace('[hidden]{display:none!important}', ''), { index: true })).toEqual([expect.stringMatching(/\[hidden\]/)]);
+    // An `index` option used to switch those checks off; it no longer exists, so passing one changes nothing.
+    const failures = (checkPage as (html: string, assets: object, opts?: object) => string[])(page({ body }), {}, { index: true });
+    expect(failures).toEqual([expect.stringMatching(/skip link/), expect.stringMatching(/id="main"/), expect.stringMatching(/<header>/)]);
   });
+
 });
 
 describe('checkPage: search palette on shell pages (contracts/build-budget.md § Structure checks)', () => {

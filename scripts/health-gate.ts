@@ -16,6 +16,8 @@ export const PATHS: Record<Exclude<Kind, 'font'>, string> = { version: '/version
 
 const ROBOTS_META = /<meta\b(?=[^>]*\bname=["']?robots\b)(?=[^>]*\bcontent=["'][^"']*noindex)[^>]*>/i;
 const SAGA_LINK = /\bhref=["']?\/cards\/saga\/(?=["'\s>])/;
+// The Phase 3 home links the learning path; the Phase 1 index did not, so this tells them apart.
+const PATH_LINK = /\bhref=["']?\/path\/(?=["'\s>])/;
 // Inline elements inside the heading are allowed (the typed title wraps the text in a <span>).
 const SAGA_H1 = /<h1\b[^>]*>(?:\s|<[^>]+>)*Saga(?:\s|<\/?[^>]+>)*<\/h1>/i;
 
@@ -61,6 +63,7 @@ export function checkResponse(kind: Kind, { status, headers, body }: GateRespons
   }
   if (!ROBOTS_META.test(body)) fail('robots meta tag with noindex missing');
   if (kind === 'index' && !SAGA_LINK.test(body)) fail('no link to /cards/saga/');
+  if (kind === 'index' && !PATH_LINK.test(body)) fail('no link to /path/');
   if (kind === 'card' && !SAGA_H1.test(body)) fail('H1 "Saga" missing');
   return problems;
 }

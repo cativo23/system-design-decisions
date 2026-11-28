@@ -44,17 +44,12 @@ const gzip = (data: Uint8Array | string) => gzipSync(data, { level: 6 }).length;
 const text = (data: Uint8Array | string) => (typeof data === 'string' ? data : Buffer.from(data).toString('utf8'));
 const bare = (url: string) => url.split(/[?#]/)[0];
 
-/** `index`: the root page has no shell yet, so it is exempt from the skip-link and landmark checks only. */
-export interface CheckOptions {
-  index?: boolean;
-}
-
 interface Analysis {
   sizes: PageSizes;
   problems: string[];
 }
 
-function analyze(html: string, assets: Assets, opts: CheckOptions): Analysis {
+function analyze(html: string, assets: Assets): Analysis {
   const problems: string[] = [];
   const offsite = (what: string, url: string) => problems.push(`${what} from another origin: ${url}`);
   const missing = (what: string, url: string) => problems.push(`${what} ${url} not found in the build output`);
@@ -136,7 +131,7 @@ function analyze(html: string, assets: Assets, opts: CheckOptions): Analysis {
   const robots = tags(html, 'meta').some((a) => a.name?.toLowerCase() === 'robots' && /noindex/i.test(a.content ?? ''));
   if (!robots) problems.push('robots meta tag with noindex missing');
 
-  problems.push(...structureProblems(html, cssTexts.map((c) => c.css).join('\n'), opts));
+  problems.push(...structureProblems(html, cssTexts.map((c) => c.css).join('\n')));
   return { sizes, problems };
 }
 
@@ -150,22 +145,21 @@ function block(css: string, from: number): string {
   return '';
 }
 
-function structureProblems(html: string, css: string, { index = false }: CheckOptions): string[] {
+function structureProblems(html: string, css: string): string[] {
   const problems: string[] = [];
 
   const h1 = tags(html, 'h1').length;
   if (h1 !== 1) problems.push(`expected exactly one <h1>, found ${h1}`);
 
-  if (!index) {
-    const body = html.slice(Math.max(0, html.search(/<body\b/i)));
-    const firstLink = tags(body, 'a')[0];
-    if (firstLink?.href !== '#main') problems.push('the first link in <body> must be the skip link (href="#main")');
-    if (!tags(html, '[a-z]+').some((a) => a.id === 'main')) problems.push('no element with id="main" for the skip link to reach');
-    if (tags(html, 'header').length === 0) problems.push('<header> landmark missing');
-    if (tags(html, 'main').length === 0) problems.push('<main> landmark missing');
-    for (const tag of ['nav', 'aside']) {
-      if (tags(html, tag).some((a) => (a['aria-label'] ?? '').trim() === '')) problems.push(`a <${tag}> has no aria-label`);
-    }
+  // Every page, the home included, has the skip link and the landmarks.
+  const body = html.slice(Math.max(0, html.search(/<body\b/i)));
+  const firstLink = tags(body, 'a')[0];
+  if (firstLink?.href !== '#main') problems.push('the first link in <body> must be the skip link (href="#main")');
+  if (!tags(html, '[a-z]+').some((a) => a.id === 'main')) problems.push('no element with id="main" for the skip link to reach');
+  if (tags(html, 'header').length === 0) problems.push('<header> landmark missing');
+  if (tags(html, 'main').length === 0) problems.push('<main> landmark missing');
+  for (const tag of ['nav', 'aside']) {
+    if (tags(html, tag).some((a) => (a['aria-label'] ?? '').trim() === '')) problems.push(`a <${tag}> has no aria-label`);
   }
 
   // The palette lives in the shell: every page with the top bar needs a live trigger and exactly one dialog.
@@ -187,12 +181,12 @@ function structureProblems(html: string, css: string, { index = false }: CheckOp
 }
 
 /** Returns one message per budget or noindex problem in a built page; [] when it's clean. */
-export function checkPage(html: string, assets: Assets, opts: CheckOptions = {}): string[] {
-  return analyze(html, assets, opts).problems;
+export function checkPage(html: string, assets: Assets): string[] {
+  return analyze(html, assets).problems;
 }
 
 export function measurePage(html: string, assets: Assets): PageSizes {
-  return analyze(html, assets, { index: true }).sizes;
+  return analyze(html, assets).sizes;
 }
 
 export function formatReport(rows: (PageSizes & { file: string })[]): string {
@@ -226,7 +220,7 @@ function main() {
   let failures = 0;
   for (const page of pages) {
     const path = join(dir, page);
-    for (const problem of checkPage(readFileSync(path, 'utf8'), assets, { index: page === 'index.html' })) {
+    for (const problem of checkPage(readFileSync(path, 'utf8'), assets)) {
       console.log(`✗ ${relative('.', path)}: ${problem}`);
       failures++;
     }

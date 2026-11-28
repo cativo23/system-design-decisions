@@ -10,7 +10,7 @@ function res(status: number, headers: Record<string, string>, body: string) {
 }
 
 const html = (body: string, head = ROBOTS_META) => `<html><head>${head}</head><body>${body}</body></html>`;
-const INDEX = html('<ul><li><a href="/cards/saga/">Saga</a></li></ul>');
+const INDEX = html('<a href="/path/">Start</a><ul><li><a href="/cards/saga/">Saga</a></li></ul>');
 const CARD = html('<h1>Saga</h1><h2>TL;DR</h2>');
 
 describe('checkResponse: version', () => {
@@ -38,6 +38,11 @@ describe('checkResponse: version', () => {
 });
 
 describe('checkResponse: index', () => {
+  it('should fail when the home has no link to the learning path (the old Phase 1 index was deployed)', () => {
+    const phase1 = html('<ul><li><a href="/cards/saga/">Saga</a></li></ul>');
+    expect(checkResponse('index', res(200, NOINDEX, phase1), SHA)).toEqual(['GET /: no link to /path/']);
+  });
+
   it('should pass with the header, the meta and the link to Saga', () => {
     expect(checkResponse('index', res(200, NOINDEX, INDEX), SHA)).toEqual([]);
   });
@@ -61,12 +66,12 @@ describe('checkResponse: index', () => {
   });
 
   it('should fail when the robots meta tag is missing', () => {
-    const body = html('<a href="/cards/saga/">Saga</a>', '');
+    const body = html('<a href="/path/">Start</a><a href="/cards/saga/">Saga</a>', '');
     expect(checkResponse('index', res(200, NOINDEX, body), SHA)).toEqual([expect.stringMatching(/^GET \/: .*robots meta/)]);
   });
 
   it('should fail when the link to /cards/saga/ is missing', () => {
-    expect(checkResponse('index', res(200, NOINDEX, html('<p>empty</p>')), SHA)).toEqual([
+    expect(checkResponse('index', res(200, NOINDEX, html('<a href="/path/">Start</a>')), SHA)).toEqual([
       expect.stringMatching(/^GET \/: .*\/cards\/saga\//),
     ]);
   });
