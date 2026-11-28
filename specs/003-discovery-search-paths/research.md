@@ -185,17 +185,24 @@ implemented, as Phase 2's R11 did:
 | shortcuts, `j`/`k`, idle loader in `shell.ts` | about 1 KB | about 40 lines |
 | **Added JS** | **4–5.5 KB** | → page JS about 11.5–12.5 KB |
 
-That is at or just over the old 12 KB, so the budget is set at **18 KB** with headroom rather
-than squeezing the code now (decision 3). If the measured total is under 12 KB the budget
-returns to 12 KB in the same task, with the number recorded here.
+That looked at or just over the old 12 KB, so the plan first set **18 KB**. **Measured at the end
+of implementation (`check:build --report`, gzip level 6):** the Saga page is JS 11,378 B (11.1 KB,
++4.1 KB over Phase 2, inside the 4–5.5 KB estimate), CSS 7,236 B, fonts 101,860 B, HTML 37,961 B,
+page 126,993 B. The palette chunk alone is 2,088 B gzipped. The 18 KB was therefore not needed and
+the budget stays at **12 KB** (headroom 910 B, 7 %). Other pages: home HTML 32,881 B, catalog 32,055 B,
+a domain 29,181 B, radar 29,181 B, **path 45,417 B of 51,200 (89 %)**, all with JS 11,378 B and CSS 4,985 B.
+One thing to know: before the checker learned backtick imports it reported 8.9 KB for the Saga page
+because the palette chunk was not counted.
 
 Search index: each entry is about 150–300 bytes of JSON (title, up to a few aliases and tags,
 domain name, status, URL). 85 entries is about 25 KB raw, which gzips well because field names
 repeat; the limit is **12 KB gzipped**, checked in `check:build`, plus a unit test on entry size.
-Only published cards enter the index, so today it holds one entry.
+Only published cards enter the index, so today it holds one entry. **Measured:** 254 B raw, 199 B gzipped
+for the one entry; the unit test builds 85 realistic entries and keeps them within 12 KB gzipped.
 
 Pages: the learning path lists 83 rows next to the tree's 83; estimated HTML 25–35 KB raw
-against the 50 KB limit. Measured in implementation.
+against the 50 KB limit. **Measured 44.4 KB** (the estimate was low), so it is the tightest page.
+Its size hardly grows with published cards because the topic list is already fixed at 83.
 
 ## R9. Test strategy
 
@@ -223,7 +230,7 @@ Not unit-tested (DOM glue, exempt as in Phase 2): `palette.ts` rendering, `shell
 
 | Item | State | Fallback |
 |---|---|---|
-| Palette chunk size (estimate 4–5.5 KB gz added) | estimated | Budget is 18 KB; if over, drop the loader fallback paths first, then simplify result rendering |
+| Palette chunk size (estimate 4–5.5 KB gz added) | measured: 2,088 B for the chunk, +4.1 KB for the whole feature on the Saga page | Budget stays 12 KB; if a later feature needs more, simplify result rendering first |
 | `requestIdleCallback` in Safari | not available in Safari (as far as I know) | `setTimeout` fallback is in the design (R2); verify in a Safari run if the owner has one |
 | `<dialog>` `showModal()` focus restore | the plan restores focus by hand, so it does not depend on browser behaviour | n/a |
 | Typo matching quality on real content | rules proven on one card and fixtures only; 41 MVP cards arrive in Phase 7 | the SC-002 test runs over the real collection in CI, so a new card that breaks it fails the build |

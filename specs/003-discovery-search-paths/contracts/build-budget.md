@@ -8,18 +8,19 @@ Anything not listed here is unchanged. Estimates and their basis:
 
 | Budget | Phase 2 | Phase 3 |
 |---|---|---|
-| JavaScript, gzipped (inline + same-origin scripts + every imported chunk, **dynamic `import()` included**) | ≤ 12 KB | **≤ 18 KB** |
+| JavaScript, gzipped (inline + same-origin scripts + every imported chunk, **dynamic `import()` included**) | ≤ 12 KB | ≤ 12 KB (unchanged; measured 11.1 KB on the Saga page) |
 | CSS, gzipped | ≤ 8 KB | ≤ 8 KB |
 | Fonts (woff2) | ≤ 110 KB | ≤ 110 KB |
 | HTML, raw | ≤ 50 KB | ≤ 50 KB |
 | Whole page, gzipped | ≤ 150 KB | ≤ 150 KB |
 | Other-origin resources | 0 | 0 |
 
-`scripts/check-build.ts` already follows `import(` as well as static `from` (line 110), so the
-palette chunk loaded at idle is counted against every page that loads `shell.ts`, which is
-every shell page. If the real total is under 12 KB the constant goes back to 12 KB in the same
-task and the number is recorded in research.md R8. Changing a constant needs the reason in
-plan.md (constitution VI).
+`scripts/check-build.ts` follows `import(` as well as static `from`, with single, double **and
+backtick** quotes (the bundler writes `import(\`./x.js\`)`; backticks were added with a test
+because the palette chunk was silently not counted before). The palette chunk loaded at idle is
+therefore counted against every page that loads `shell.ts`, which is every shell page. The real
+total was under 12 KB, so the constant stayed at 12 KB; the numbers are in research.md R8.
+Changing a constant needs the reason in plan.md (constitution VI).
 
 ## New: search index
 

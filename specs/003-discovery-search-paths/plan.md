@@ -19,8 +19,8 @@ runtime dependency.
   shell, all are built from one pure "catalog" module over `docs/TOPICS.md` plus the cards.
 - **Keyboard:** `⌘K` / `Ctrl+K` / `/` open the palette; `j` / `k` move between sections of a card.
   The decisions are pure functions; `shell.ts` stays DOM glue.
-- **Budgets:** the JS budget rises from 12 KB to 18 KB gzipped (the palette is the first real
-  interactive feature); a search-index budget is added; everything else is unchanged.
+- **Budgets:** the JS budget stays at 12 KB gzipped (the palette fits: Saga page 11.1 KB measured);
+  a search-index budget is added; everything else is unchanged.
 
 ## ⚠ Decisions for the owner (deviations from the plan prompt and open choices)
 
@@ -28,7 +28,7 @@ runtime dependency.
 |---|---|---|---|---|
 | 1 | "Pagefind for search" (DESIGN §6, PHASES Phase 3 note) | **No Pagefind.** A build-time JSON index plus an in-house fuzzy matcher. **Approved by Carlos on 2026-11-27.** | Measured in a scratch project: Pagefind finds `saga`, `sag`, `transac` and the alias `distributed transaction`, but **0 results** for `sga`, `distribtued`, `consitency`; FR-003 and SC-002 require typo tolerance. It also ships about 47 KB JS plus about 55 KB wasm (raw) to search titles, aliases and tags only ([R1](research.md#r1-search-engine-no-pagefind)) | `npx astro add` is not needed; add `pagefind` as a build step and a typo layer, and drop SC-002's typo cases |
 | 2 | "Palette is an Astro island loaded with `client:idle`" | A **native `<dialog>`** in the shell plus a script **loaded when the browser is idle** (`requestIdleCallback`, with the first open also loading it). Not a framework island | React was deferred in Phase 1 (approved), `client:idle` only exists for framework components, and `<dialog>` gives the focus trap, Esc and background inerting for free ([R2](research.md#r2-the-palette-dialog-script-and-idle-loading)) | Add `@astrojs/react` and port `palette.ts` to a component |
-| 3 | JS budget 12 KB (Phase 2) | **18 KB** gzipped per page, counting the palette chunk; new **search index ≤ 12 KB gzipped** | The palette chunk is real, user-visible code; estimate in [R8](research.md#r8-performance-budget-constitution-vi), real numbers recorded after implementation as in Phase 2 | Remove the palette, or keep 12 KB and defer the matcher |
+| 3 | JS budget 12 KB (Phase 2) | **Kept at 12 KB** gzipped per page, now counting the palette chunk; new **search index ≤ 12 KB gzipped**. (The plan first raised it to 18 KB on an estimate; measured it was not needed.) | The checker did not count the palette chunk until its import regex learned backticks (fixed with a test); counted, the Saga page is 11.1 KB. Numbers in [R8](research.md#r8-performance-budget-constitution-vi) | Raise the constant if the next feature needs it, with its reason here |
 | 4 | Spec lists the new pages but no way to reach catalog, path and radar from a card page | **Three links in the top bar** (`catalog`, `path`, `radar`), placed in the phone menu at ≤ 880 px ([R5](research.md#r5-reaching-the-new-pages-top-bar-links)) | Without them FR-008..FR-011 pages are unreachable except from the home | Drop the links; pages stay reachable only via home and the palette |
 | 5 | Two orderings exist: `order` in each card and position in `docs/TOPICS.md` | **Path order is the position in `docs/TOPICS.md`** (what the tree and pager already use). A new cross-card **validator rule** fails the build if a published card's `order` disagrees with its position | One source of truth for path order (FR-016, SC-005); constitution II wants it enforced, not remembered ([R6](research.md#r6-one-source-of-truth-for-path-order)) | Skip the rule and treat `order` as informational |
 | 6 | Root page exempt from skip-link and landmark checks "until Phase 3" (Phase 2 build-budget contract) | **Exemption removed**: the home now has the shell, so it must pass every check | The exemption said Phase 3 would end it | Keep the exemption |
@@ -151,10 +151,10 @@ Per HTML page, gzip level 6 (nginx's level), same measurement as Phase 2 (`check
 
 | Budget | Phase 2 | Phase 3 | Why |
 |---|---|---|---|
-| JavaScript (inline + same-origin scripts + imported chunks, **dynamic imports included**) | ≤ 12 KB | **≤ 18 KB** | Saga page measured 7.1 KB; the palette and matcher are estimated at 5–7 KB ([R8](research.md#r8-performance-budget-constitution-vi)) |
-| CSS | ≤ 8 KB | ≤ 8 KB | Saga page 5.6 KB; palette + home + lists fit in about 2 KB, measured at the end |
+| JavaScript (inline + same-origin scripts + imported chunks, **dynamic imports included**) | ≤ 12 KB | **≤ 12 KB** (unchanged) | Saga page was 7.1 KB, now 11.1 KB with the palette, matcher and `j`/`k`; 0.9 KB of headroom left ([R8](research.md#r8-performance-budget-constitution-vi)) |
+| CSS | ≤ 8 KB | ≤ 8 KB | Saga page was 5.6 KB, now 7.1 KB with the palette, home, lists, radar and navigation; 0.9 KB of headroom left |
 | Fonts | ≤ 110 KB | ≤ 110 KB | No new font |
-| HTML, raw | ≤ 50 KB | ≤ 50 KB | Longest new page is the learning path (83 rows) plus the tree |
+| HTML, raw | ≤ 50 KB | ≤ 50 KB | Longest new page is the learning path (83 rows) plus the tree: 44.4 KB measured |
 | Whole page, gzipped | ≤ 150 KB | ≤ 150 KB | Saga page 123 KB + palette JS fits |
 | Third-party origins | 0 | 0 | unchanged |
 | **`search-index.json`, gzipped** | n/a | **≤ 12 KB** at 85 entries | New; checked in `check:build`; entry size is tested too |
