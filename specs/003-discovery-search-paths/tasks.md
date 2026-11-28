@@ -124,10 +124,10 @@ No new package is installed by this feature.
 
 **Independent Test**: quickstart §4 (path part).
 
-- [ ] T042 [P] [US4] Add to `tests/unit/catalog.test.ts` (red first) tests for `startPoint(catalog)`: returns the first published entry in path order; `null` when none is published. See them fail.
-- [ ] T043 [US4] Implement `startPoint` in `src/lib/discovery/catalog.ts` until T042 is green.
-- [ ] T044 [US4] Create `src/pages/path.astro` (`kind="path"`): every domain heading and its entries in path order through `EntryList`, and the start link "Start with <title>" (plain text saying none is available yet when `startPoint` is `null`). Link the home entry point (T032) to this page.
-- [ ] T045 [US4] Run quickstart §4 for `/path/` (each topic once, start link opens Saga) and record it.
+- [X] T042 [P] [US4] Add to `tests/unit/catalog.test.ts` (red first) tests for `startPoint(catalog)`: returns the first published entry in path order; `null` when none is published. See them fail.
+- [X] T043 [US4] Implement `startPoint` in `src/lib/discovery/catalog.ts` until T042 is green.
+- [X] T044 [US4] Create `src/pages/path.astro` (`kind="path"`): every domain heading and its entries in path order through `EntryList`, and the start link "Start with <title>" (plain text saying none is available yet when `startPoint` is `null`). Link the home entry point (T032) to this page.
+- [X] T045 [US4] Run quickstart §4 for `/path/` (each topic once, start link opens Saga) and record it. **Result (Chrome, preview build):** `/path/` has 13 domain sections and 83 rows with 83 unique titles, so every topic appears exactly once (SC-005); Foundations first, Reference architectures last; Saga is the only link and the start link reads "Start with Saga" and opens `/cards/saga/` through the router with focus on the title; status line mode is `path`; one `<h1>`. `check:build`: 17 pages within budget; the path page is 44,943 B of HTML (limit 51,200), the tightest page so far, and Saga's CSS is 7,024 B of 8,192. The introduction said "marked not yet available" while the rows are only dimmed, so the wording now says dimmed.
 
 **Checkpoint**: Show Carlos.
 

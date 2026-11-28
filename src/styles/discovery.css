@@ -98,3 +98,11 @@ html[data-js] .search-entry { display: inline-flex; }
 @media (max-width: 880px) {
   .page { padding-block: 28px 96px; }
 }
+
+.page .start { margin-bottom: 36px; }
+.path-domain { margin-top: 32px; max-width: 46rem; }
+.path-domain h2 { display: flex; align-items: baseline; gap: 12px; margin: 0 0 8px; font: 500 1rem var(--sans); }
+.path-domain h2 a { color: var(--fg); }
+.path-domain h2 a:hover { text-decoration: underline; text-underline-offset: 3px; }
+.path-domain h2 .n { margin-right: 10px; color: var(--accent); font: 0.75rem var(--mono); }
+.path-domain h2 .count { margin-left: auto; color: var(--fg-muted); font: 0.75rem var(--mono); }
