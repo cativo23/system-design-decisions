@@ -13,6 +13,8 @@ export const BUDGETS = {
   fonts: 110 * 1024,
   html: 51200,
   page: 150 * 1024,
+  // dist/search-index.json, gzipped: the palette fetches it once (specs/003-discovery-search-paths/contracts/build-budget.md).
+  searchIndex: 12 * 1024,
 };
 
 export type Assets = Record<string, Uint8Array | string>;
@@ -44,17 +46,12 @@ const gzip = (data: Uint8Array | string) => gzipSync(data, { level: 6 }).length;
 const text = (data: Uint8Array | string) => (typeof data === 'string' ? data : Buffer.from(data).toString('utf8'));
 const bare = (url: string) => url.split(/[?#]/)[0];
 
-/** `index`: the root page has no shell yet, so it is exempt from the skip-link and landmark checks only. */
-export interface CheckOptions {
-  index?: boolean;
-}
-
 interface Analysis {
   sizes: PageSizes;
   problems: string[];
 }
 
-function analyze(html: string, assets: Assets, opts: CheckOptions): Analysis {
+function analyze(html: string, assets: Assets): Analysis {
   const problems: string[] = [];
   const offsite = (what: string, url: string) => problems.push(`${what} from another origin: ${url}`);
   const missing = (what: string, url: string) => problems.push(`${what} ${url} not found in the build output`);
@@ -107,7 +104,8 @@ function analyze(html: string, assets: Assets, opts: CheckOptions): Analysis {
     const asset = assets[url];
     if (asset === undefined) return missing('script', url);
     js += gzip(asset);
-    for (const [, spec] of text(asset).matchAll(/(?:\bfrom\s*|\bimport\s*\(?\s*)["'](\.{1,2}\/[^"']+)["']/g)) {
+    // The bundler writes dynamic imports with backticks (import(`./x.js`)), so all three quote kinds count.
+    for (const [, spec] of text(asset).matchAll(/(?:\bfrom\s*|\bimport\s*\(?\s*)["'`](\.{1,2}\/[^"'`]+)["'`]/g)) {
       visit(posix.join(posix.dirname(url), bare(spec)));
     }
   };
@@ -135,7 +133,7 @@ function analyze(html: string, assets: Assets, opts: CheckOptions): Analysis {
   const robots = tags(html, 'meta').some((a) => a.name?.toLowerCase() === 'robots' && /noindex/i.test(a.content ?? ''));
   if (!robots) problems.push('robots meta tag with noindex missing');
 
-  problems.push(...structureProblems(html, cssTexts.map((c) => c.css).join('\n'), opts));
+  problems.push(...structureProblems(html, cssTexts.map((c) => c.css).join('\n')));
   return { sizes, problems };
 }
 
@@ -149,22 +147,29 @@ function block(css: string, from: number): string {
   return '';
 }
 
-function structureProblems(html: string, css: string, { index = false }: CheckOptions): string[] {
+function structureProblems(html: string, css: string): string[] {
   const problems: string[] = [];
 
   const h1 = tags(html, 'h1').length;
   if (h1 !== 1) problems.push(`expected exactly one <h1>, found ${h1}`);
 
-  if (!index) {
-    const body = html.slice(Math.max(0, html.search(/<body\b/i)));
-    const firstLink = tags(body, 'a')[0];
-    if (firstLink?.href !== '#main') problems.push('the first link in <body> must be the skip link (href="#main")');
-    if (!tags(html, '[a-z]+').some((a) => a.id === 'main')) problems.push('no element with id="main" for the skip link to reach');
-    if (tags(html, 'header').length === 0) problems.push('<header> landmark missing');
-    if (tags(html, 'main').length === 0) problems.push('<main> landmark missing');
-    for (const tag of ['nav', 'aside']) {
-      if (tags(html, tag).some((a) => (a['aria-label'] ?? '').trim() === '')) problems.push(`a <${tag}> has no aria-label`);
-    }
+  // Every page, the home included, has the skip link and the landmarks.
+  const body = html.slice(Math.max(0, html.search(/<body\b/i)));
+  const firstLink = tags(body, 'a')[0];
+  if (firstLink?.href !== '#main') problems.push('the first link in <body> must be the skip link (href="#main")');
+  if (!tags(html, '[a-z]+').some((a) => a.id === 'main')) problems.push('no element with id="main" for the skip link to reach');
+  if (tags(html, 'header').length === 0) problems.push('<header> landmark missing');
+  if (tags(html, 'main').length === 0) problems.push('<main> landmark missing');
+  for (const tag of ['nav', 'aside']) {
+    if (tags(html, tag).some((a) => (a['aria-label'] ?? '').trim() === '')) problems.push(`a <${tag}> has no aria-label`);
+  }
+
+  // The palette lives in the shell: every page with the top bar needs a live trigger and exactly one dialog.
+  if (/<header\b[^>]*\bclass=["'][^"']*\btopbar\b/i.test(html)) {
+    const trigger = tags(html, 'button').some((b) => /\bsearch\b/.test(b.class ?? '') && b['aria-disabled'] === undefined);
+    if (!trigger) problems.push('no search trigger: expected a <button class="search"> that is not aria-disabled');
+    const dialogs = tags(html, 'dialog').filter((d) => d.id === 'palette').length;
+    if (dialogs !== 1) problems.push(`expected exactly one <dialog id="palette">, found ${dialogs}`);
   }
 
   if (!/\[hidden\]\s*\{[^}]*display\s*:\s*none\s*!important/i.test(css)) {
@@ -177,13 +182,41 @@ function structureProblems(html: string, css: string, { index = false }: CheckOp
   return problems;
 }
 
+/**
+ * Problems in the palette's data file; [] when it is sound. `pages` are the built HTML paths relative to dist/
+ * (for example "cards/saga/index.html"), so every link in the index can be checked against the build.
+ */
+export function checkSearchIndex(text: string, pages: string[]): string[] {
+  const fail = (message: string) => `search-index.json: ${message}`;
+  const problems: string[] = [];
+  const size = gzip(text);
+  if (size > BUDGETS.searchIndex) problems.push(fail(`size is ${size} bytes (budget ${BUDGETS.searchIndex})`));
+
+  let data: { version?: unknown; entries?: unknown };
+  try {
+    data = JSON.parse(text);
+  } catch (error) {
+    return [...problems, fail(`is not valid JSON (${(error as Error).message})`)];
+  }
+  if (data.version !== 1 || !Array.isArray(data.entries)) {
+    return [...problems, fail('expected version 1 and an entries list')];
+  }
+  const built = new Set(pages);
+  for (const entry of data.entries as { href?: unknown }[]) {
+    const href = typeof entry?.href === 'string' ? entry.href : '';
+    const page = href.replace(/^\//, '') + (href.endsWith('/') ? 'index.html' : '');
+    if (!built.has(page)) problems.push(fail(`links to ${href || '(no href)'}, which is not in the build output`));
+  }
+  return problems;
+}
+
 /** Returns one message per budget or noindex problem in a built page; [] when it's clean. */
-export function checkPage(html: string, assets: Assets, opts: CheckOptions = {}): string[] {
-  return analyze(html, assets, opts).problems;
+export function checkPage(html: string, assets: Assets): string[] {
+  return analyze(html, assets).problems;
 }
 
 export function measurePage(html: string, assets: Assets): PageSizes {
-  return analyze(html, assets, { index: true }).sizes;
+  return analyze(html, assets).sizes;
 }
 
 export function formatReport(rows: (PageSizes & { file: string })[]): string {
@@ -217,8 +250,22 @@ function main() {
   let failures = 0;
   for (const page of pages) {
     const path = join(dir, page);
-    for (const problem of checkPage(readFileSync(path, 'utf8'), assets, { index: page === 'index.html' })) {
+    for (const problem of checkPage(readFileSync(path, 'utf8'), assets)) {
       console.log(`✗ ${relative('.', path)}: ${problem}`);
+      failures++;
+    }
+  }
+  // The palette's data file is not a page, so it is checked on its own.
+  let indexText: string | null = null;
+  try {
+    indexText = readFileSync(join(dir, 'search-index.json'), 'utf8');
+  } catch {
+    console.log(`✗ ${relative('.', join(dir, 'search-index.json'))}: file missing`);
+    failures++;
+  }
+  if (indexText !== null) {
+    for (const problem of checkSearchIndex(indexText, pages.map((p) => p.split(sep).join('/')))) {
+      console.log(`✗ ${relative('.', join(dir, 'search-index.json'))}: ${problem.replace(/^search-index\.json: /, '')}`);
       failures++;
     }
   }
@@ -226,7 +273,7 @@ function main() {
     console.log(`${failures} problem(s) in the build output`);
     process.exit(1);
   }
-  console.log(`✓ ${pages.length} page(s) within budget and noindexed`);
+  console.log(`✓ ${pages.length} page(s) within budget and noindexed; search index within budget`);
 }
 
 if (import.meta.main) main();

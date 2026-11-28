@@ -1,0 +1,22 @@
+---
+// One domain on the home and the catalog: number, name, published out of total as a bar and as text (FR-014).
+// A domain with nothing published reads "0 / N" and stays a link (story 2, scenario 4).
+import type { DomainSummary } from '../lib/discovery/catalog.ts';
+
+interface Props {
+  summary: DomainSummary;
+}
+const { summary } = Astro.props;
+const { domain, label, meter } = summary;
+---
+
+<li>
+  <a class="tile" href={`/catalog/${domain.slug}/`}>
+    <span class="n">{String(domain.number).padStart(2, '0')}</span>
+    <span class="name">{domain.name}</span>
+    <span class="stats">
+      <span class="meter" aria-hidden="true">{meter}</span>
+      <span class="count">{label}<span class="sr-only"> cards available</span></span>
+    </span>
+  </a>
+</li>

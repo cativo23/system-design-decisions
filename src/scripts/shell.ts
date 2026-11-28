@@ -1,4 +1,5 @@
-// DOM glue only: every decision comes from src/lib/layout/. Text and attributes only, no HTML strings.
+// DOM glue only: every decision comes from src/lib/layout/ and src/lib/discovery/. Text and attributes only, no HTML strings.
+import { adjacentSection, reachedSection, shouldHandleSectionKey, shouldOpenPalette } from '../lib/discovery/keys.ts';
 import { nextFocusIndex, nextMenuState, type MenuEvent, type MenuState } from '../lib/layout/menu.ts';
 import { scrollLabel } from '../lib/layout/scroll.ts';
 import { currentSection } from '../lib/layout/toc.ts';
@@ -46,7 +47,8 @@ function init(navigated: boolean): () => void {
       const heading = document.getElementById(a.hash.slice(1));
       return heading ? [{ id: heading.id, top: heading.getBoundingClientRect().top }] : [];
     });
-    const current = currentSection(tops, READING_LINE);
+    const atBottom = window.scrollY >= document.documentElement.scrollHeight - window.innerHeight - 2;
+    const current = currentSection(tops, READING_LINE, atBottom ? { viewport: window.innerHeight } : undefined);
     for (const a of tocLinks) {
       const on = a.hash === `#${current}`;
       a.classList.toggle('active', on);
@@ -66,6 +68,10 @@ function init(navigated: boolean): () => void {
 
   markCurrentCard();
   if (navigated) focusTitle();
+  // The shortcut hint names the key the reader's platform has.
+  if (/Mac|iPhone|iPad/.test(navigator.platform)) {
+    for (const hint of document.querySelectorAll('.search .hint')) hint.textContent = '⌘K';
+  }
 
   return () => {
     window.removeEventListener('scroll', schedule);
@@ -93,7 +99,13 @@ function markCurrentCard() {
     const glyph = a.querySelector<HTMLElement>('.st');
     if (glyph) glyph.textContent = here ? '◀' : (glyph.dataset.glyph ?? '○');
   }
-  if (!current) return;
+  if (!current) {
+    // A domain page opens its own domain; every other page leaves the reader's open/closed state alone.
+    const slug = window.location.pathname.match(/^\/catalog\/([^/]+)\/$/)?.[1];
+    const own = slug ? tree.querySelector<HTMLDetailsElement>(`details[data-slug="${CSS.escape(slug)}"]`) : null;
+    if (own) own.open = true;
+    return;
+  }
 
   const details = tree.querySelector<HTMLDetailsElement>(`details[data-domain="${current.domain}"]`);
   if (details) details.open = true;
@@ -150,6 +162,85 @@ document.addEventListener('keydown', (e) => {
 });
 
 document.addEventListener('astro:before-swap', () => dispatch('navigate'));
+
+// ---------- command palette (research.md R2) ----------
+// The behaviour is a separate chunk, loaded when the browser is idle or on first use. Shortcuts are bound once on
+// `document`, so they keep working after every client-side navigation (FR-022).
+let paletteModule: Promise<typeof import('./palette.ts')> | null = null;
+let paletteLoaded = false;
+const loadPalette = () => (paletteModule ??= import('./palette.ts').then((m) => ((paletteLoaded = true), m)));
+(window.requestIdleCallback ?? ((fn: () => void) => setTimeout(fn, 200)))(() => void loadPalette());
+
+function openPalette() {
+  const dialog = document.getElementById('palette') as HTMLDialogElement | null;
+  if (!dialog || dialog.open || menu === 'open') return;
+  const opener = document.activeElement as HTMLElement | null;
+  if (!paletteLoaded) {
+    // Not loaded yet: show the dialog at once with a loading line rather than doing nothing (FR-006).
+    dialog.showModal();
+    const status = document.getElementById('palette-status');
+    if (status) status.textContent = 'Loading…';
+    document.getElementById('palette-input')?.focus();
+  }
+  void loadPalette().then((m) => m.openPalette(opener));
+}
+
+document.addEventListener('keydown', (e) => {
+  const active = document.activeElement as HTMLElement | null;
+  if (!shouldOpenPalette(e, { tag: active?.tagName ?? '', editable: active?.isContentEditable ?? false })) return;
+  e.preventDefault();
+  openPalette();
+});
+
+document.addEventListener('click', (e) => {
+  if ((e.target as Element).closest('[data-open-palette]')) openPalette();
+});
+
+// ---------- j / k between the sections of a card (FR-012) ----------
+// Relative to the section the reader has reached (normally the one the table of contents highlights), also after scrolling by hand.
+// Quick presses count from the section already aimed at, not from where a smooth scroll has got to, and the aim also
+// holds when the page cannot scroll further (the last sections never reach the top). Any other input, such as the wheel,
+// a touch, a click, another key or a new page, forgets the aim and goes back to the section that is on screen.
+let aimedAt: string | null = null;
+const forgetAim = () => {
+  aimedAt = null;
+};
+for (const type of ['wheel', 'touchstart', 'pointerdown']) window.addEventListener(type, forgetAim, { passive: true });
+document.addEventListener('astro:page-load', forgetAim);
+
+document.addEventListener('keydown', (e) => {
+  const active = document.activeElement as HTMLElement | null;
+  const links = [...document.querySelectorAll<HTMLAnchorElement>('.toc a[href^="#"]')];
+  const key = shouldHandleSectionKey(
+    e,
+    { tag: active?.tagName ?? '', editable: active?.isContentEditable ?? false },
+    { paletteOpen: (document.getElementById('palette') as HTMLDialogElement | null)?.open ?? false, isCard: links.length > 0 },
+  );
+  if (!key) {
+    if (!['Shift', 'Control', 'Alt', 'Meta'].includes(e.key)) forgetAim();
+    return;
+  }
+  const tops = links.flatMap((a) => {
+    const heading = document.getElementById(a.hash.slice(1));
+    return heading ? [{ id: heading.id, top: heading.getBoundingClientRect().top }] : [];
+  });
+  const atBottom = window.scrollY >= document.documentElement.scrollHeight - window.innerHeight - 2;
+  const reached = reachedSection(tops, READING_LINE, atBottom, window.innerHeight);
+  const target = adjacentSection(
+    tops.map((t) => t.id),
+    aimedAt ?? reached,
+    key,
+  );
+  if (!target) return;
+  const reduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  document.getElementById(target)?.scrollIntoView({ block: 'start', behavior: reduced ? 'instant' : 'smooth' });
+  aimedAt = target;
+});
+
+// A result that navigates leaves no modal open on the next page.
+document.addEventListener('astro:before-swap', () => {
+  (document.getElementById('palette') as HTMLDialogElement | null)?.close();
+});
 window.matchMedia('(min-width: 881px)').addEventListener('change', (e) => e.matches && dispatch('close'));
 
 // Related spotlight: the glow follows the pointer through two custom properties (set via the CSSOM, no HTML).

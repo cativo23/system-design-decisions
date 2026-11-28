@@ -43,6 +43,7 @@ export function validateCards(cards: ParsedCard[], topics: TopicEntry[], today: 
       const others = (filesById.get(id) ?? []).filter((f) => f !== card.file);
       if (others.length > 0) fail('id-duplicate', `id "${id}" is also used by ${others.join(', ')}`);
       if (!topicIds.has(id)) fail('id-not-in-topics', `id "${id}" is not listed in the master topic list (TOPICS.md)`);
+      else checkOrder(card, id, topics, fail);
     }
 
     const related = card.data?.related;
@@ -58,6 +59,16 @@ export function validateCards(cards: ParsedCard[], topics: TopicEntry[], today: 
     }
     return failures;
   });
+}
+
+// The learning-path order is the topic-list position (research.md R6); `order` must not drift from it.
+function checkOrder(card: ParsedCard, id: string, topics: TopicEntry[], fail: (rule: RuleCode, detail: string) => void) {
+  const topic = topics.find((t) => t.id === id)!;
+  const position = topics.filter((t) => t.domainNumber === topic.domainNumber).findIndex((t) => t.id === id) + 1;
+  const order = card.data?.order;
+  if (typeof order === 'number' && order !== position) {
+    fail('order-matches-topics', `order ${order} differs from position ${position} of "${id}" in its domain in the topic list (TOPICS.md)`);
+  }
 }
 
 function cardId(card: ParsedCard): string | null {

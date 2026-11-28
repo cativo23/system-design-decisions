@@ -1,0 +1,123 @@
+/* Discovery: the command palette now; home, lists and radar join it in later tasks.
+   Text uses only the audited tokens (tests/unit/contrast.test.ts). Animations are covered by the
+   reduced-motion block in global.css. Text is sized in rem (tests/unit/font-units.test.ts). */
+
+kbd { display: inline-block; min-width: 1.5em; padding: 0 6px; border: 1px solid var(--line-strong); border-radius: 4px; background: var(--bg); color: var(--fg-muted); font: 0.6562rem/1.5rem var(--mono); text-align: center; }
+
+/* ---------- palette ---------- */
+dialog.palette { width: min(40rem, calc(100vw - 2rem)); max-height: min(34rem, 80vh); margin: 12vh auto auto; padding: 0; overflow: hidden; display: none; flex-direction: column;
+  background: var(--bg-raised); color: var(--fg); border: 1px solid var(--line-strong); border-radius: 12px; box-shadow: 0 24px 80px rgba(0, 0, 0, 0.6); }
+dialog.palette[open] { display: flex; animation: palette-in 0.12s ease-out; }
+dialog.palette::backdrop { background: rgba(0, 0, 0, 0.55); }
+@keyframes palette-in { from { opacity: 0; transform: translateY(-6px); } }
+
+#palette-input { all: unset; box-sizing: border-box; width: 100%; padding: 16px 18px; border-bottom: 1px solid var(--line); color: var(--fg); font: 0.9375rem var(--mono); }
+#palette-input::placeholder { color: var(--fg-faint); }
+#palette-input:focus-visible { outline: 1px solid var(--accent); outline-offset: -2px; border-radius: 12px 12px 0 0; }
+
+#palette-results { list-style: none; margin: 0; padding: 6px; overflow-y: auto; }
+#palette-results:empty { display: none; }
+#palette-results li a { display: flex; align-items: center; gap: 12px; min-height: 2.75rem; padding: 8px 12px; border-radius: 8px; border-left: 2px solid transparent; }
+#palette-results li[aria-selected="true"] a { background: var(--bg-hover); border-left-color: var(--accent); }
+#palette-results .t { flex: 1; min-width: 0; color: var(--fg); font: 500 0.875rem var(--sans); overflow-wrap: anywhere; }
+#palette-results .d { color: var(--fg-muted); font: 0.7188rem var(--mono); }
+
+#palette-status { margin: 0; padding: 10px 18px; color: var(--fg-muted); font: 0.75rem var(--mono); }
+#palette-status:empty { display: none; }
+.palette-keys { margin: 0; padding: 8px 18px; display: flex; gap: 6px; align-items: center; border-top: 1px solid var(--line); color: var(--fg-faint); font: 0.6875rem var(--mono); }
+
+@media (max-width: 880px) {
+  dialog.palette { margin-top: 8vh; }
+  .palette-keys { display: none; }
+  #palette-results .d { display: none; }
+}
+@media (max-width: 880px) {
+  .search .hint { display: none; }
+}
+
+/* ---------- home ---------- */
+.home { padding-block: 44px 120px; max-width: 62rem; }
+.home .prompt { font: 0.7812rem var(--mono); color: var(--fg-faint); margin-bottom: 14px; }
+.home .prompt .sym { color: var(--accent); margin-inline: 8px; }
+.home .prompt .cmd { color: var(--fg-muted); }
+.home h1 { margin: 0 0 18px; font: 600 clamp(2rem, 4vw, 2.75rem) / 1.1 var(--sans); letter-spacing: -0.02em; }
+.home .lede { margin: 0 0 10px; max-width: 42rem; color: var(--fg); font-size: 1.0625rem; }
+.home .for { margin: 0 0 26px; color: var(--fg-muted); }
+.entries { display: flex; flex-wrap: wrap; gap: 12px; margin-bottom: 52px; }
+.btn { all: unset; box-sizing: border-box; display: inline-flex; align-items: center; justify-content: center; gap: 10px; min-height: 44px; padding: 0 20px; border: 1px solid var(--line-strong); border-radius: 8px;
+  background: var(--bg-raised); color: var(--fg); font: 500 0.875rem var(--mono); cursor: pointer; }
+.btn:hover { background: var(--bg-hover); }
+.btn:focus-visible { outline: 1px solid var(--accent); outline-offset: 2px; }
+.btn.primary { background: var(--accent); border-color: var(--accent); color: var(--bg); }
+.btn.primary:hover { background: var(--accent); filter: brightness(1.08); }
+/* Without scripts a search button would do nothing, so it only shows when they run (SC-010). */
+.search-entry { display: none; }
+html[data-js] .search-entry { display: inline-flex; }
+
+.section-title { margin: 0 0 16px; font: 500 0.7812rem var(--mono); color: var(--fg-faint); letter-spacing: 0.04em; }
+.section-title::before { content: "// "; color: var(--accent); }
+.home section + section { margin-top: 48px; }
+
+.tiles { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(auto-fill, minmax(min(15rem, 100%), 1fr)); gap: 12px; }
+.tile { display: grid; grid-template-columns: 1.75rem minmax(0, 1fr); gap: 4px 12px; min-height: 5.5rem; padding: 14px 16px; border: 1px solid var(--line); border-radius: 10px; background: var(--bg-raised); transition: background 0.15s, border-color 0.15s; }
+.tile:hover { background: var(--bg-hover); border-color: var(--line-strong); }
+.tile .n { color: var(--fg-faint); font: 0.75rem var(--mono); padding-top: 2px; }
+.tile .name { color: var(--fg); font: 500 0.9375rem var(--sans); overflow-wrap: anywhere; }
+.tile .stats { grid-column: 2; display: flex; align-items: baseline; gap: 10px; align-self: end; }
+.tile .meter { color: var(--accent); font: 0.8125rem var(--mono); }
+.tile .count { color: var(--fg-muted); font: 0.75rem var(--mono); }
+
+.fresh { list-style: none; margin: 0; padding: 0; display: grid; gap: 4px; }
+.fresh li { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 14px; min-height: 2.75rem; padding: 6px 4px; border-bottom: 1px solid var(--line); }
+.fresh a { color: var(--fg); font-weight: 500; }
+.fresh a:hover { text-decoration: underline; text-underline-offset: 3px; }
+.fresh .when { margin-left: auto; color: var(--fg-muted); font: 0.75rem var(--mono); }
+.empty { color: var(--fg-muted); }
+
+@media (max-width: 880px) {
+  .home { padding-block: 28px 96px; }
+  .fresh .when { margin-left: 0; }
+}
+
+/* ---------- catalog, domain and path pages ---------- */
+.page { padding-block: 44px 120px; max-width: 62rem; }
+.page .prompt { font: 0.7812rem var(--mono); color: var(--fg-faint); margin-bottom: 14px; }
+.page .prompt .path { color: var(--fg-muted); }
+.page .prompt .sym { color: var(--accent); margin-inline: 8px; }
+.page .prompt .cmd { color: var(--fg-muted); }
+.page h1 { margin: 0 0 14px; font: 600 clamp(1.75rem, 3.5vw, 2.25rem) / 1.15 var(--sans); letter-spacing: -0.02em; }
+.page .lede { margin: 0 0 28px; max-width: 42rem; color: var(--fg-muted); }
+
+.entries-list { list-style: none; margin: 0; padding: 0; max-width: 46rem; }
+.entries-list .row { display: flex; align-items: center; gap: 14px; min-height: 2.75rem; padding: 6px 8px; border-bottom: 1px solid var(--line); border-radius: 6px; }
+.entries-list a.row:hover { background: var(--bg-hover); }
+.entries-list .pos { color: var(--fg-faint); font: 0.75rem var(--mono); }
+.entries-list .t { flex: 1; min-width: 0; color: var(--fg); font-weight: 500; overflow-wrap: anywhere; }
+.entries-list .planned .t { color: var(--fg-faint); font-weight: 400; }
+
+@media (max-width: 880px) {
+  .page { padding-block: 28px 96px; }
+}
+
+.page .start { margin-bottom: 36px; }
+.path-domain { margin-top: 32px; max-width: 46rem; }
+.path-domain h2 { display: flex; align-items: baseline; gap: 12px; margin: 0 0 8px; font: 500 1rem var(--sans); }
+.path-domain h2 a { color: var(--fg); }
+.path-domain h2 a:hover { text-decoration: underline; text-underline-offset: 3px; }
+.path-domain h2 .n { margin-right: 10px; color: var(--accent); font: 0.75rem var(--mono); }
+.path-domain h2 .count { margin-left: auto; color: var(--fg-muted); font: 0.75rem var(--mono); }
+
+/* ---------- radar ---------- */
+.radar-group { margin-top: 32px; max-width: 46rem; }
+.radar-group h2 { display: flex; align-items: center; gap: 12px; margin: 0 0 10px; font-size: 1rem; }
+.radar-group .count { color: var(--fg-muted); font: 0.75rem var(--mono); }
+.radar-list { list-style: none; margin: 0; padding: 0; }
+.radar-list .row { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 14px; min-height: 2.75rem; padding: 6px 8px; border-bottom: 1px solid var(--line); border-radius: 6px; }
+.radar-list .row:hover { background: var(--bg-hover); }
+.radar-list .t { color: var(--fg); font-weight: 500; }
+.radar-list .d { color: var(--fg-muted); font: 0.75rem var(--mono); }
+.radar-list .when { margin-left: auto; color: var(--fg-muted); font: 0.75rem var(--mono); }
+.radar-group .empty { margin: 0; padding: 8px; }
+@media (max-width: 880px) {
+  .radar-list .when { margin-left: 0; }
+}

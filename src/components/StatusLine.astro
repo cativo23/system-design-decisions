@@ -1,22 +1,24 @@
 ---
 // tmux-style status line, always on screen. Decorative: the same facts are in the page (aria-hidden).
-// The position field is set live by shell.ts.
+// Shows only the fields the page has (statusFields); the position field is set live by shell.ts.
+import type { StatusFields } from '../lib/discovery/status-fields.ts';
+
 interface Props {
-  domain: string;
-  file: string;
-  status: string;
-  read: number;
-  total: number;
+  fields: StatusFields;
+  /** Card pages also have the j / k section keys. */
+  sections?: boolean;
 }
-const { domain, file, status, read, total } = Astro.props;
+const { mode, domain, file, status, progress } = Astro.props.fields;
+const { sections = false } = Astro.props;
 ---
 
 <div class="statusline" aria-hidden="true">
-  <span class="mode">READ</span>
-  <span class="hide-sm">{domain}</span>
-  <span>{file}</span>
-  <span class:list={['hide-sm', `st-${status}`]}>● {status}</span>
-  <span class="hide-sm">domain {read}/{total}</span>
+  <span class="mode">{mode}</span>
+  {domain && <span class="hide-sm">{domain}</span>}
+  {file && <span>{file}</span>}
+  {status && <span class:list={['hide-sm', `st-${status}`]}>● {status}</span>}
+  {progress && <span class="hide-sm">{progress}</span>}
   <span class="grow"></span>
+  <span class="keys hide-sm">{sections && 'j / k sections · '}/ search</span>
   <span class="pct" id="sl-pct">top</span>
 </div>

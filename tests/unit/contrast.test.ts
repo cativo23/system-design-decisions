@@ -60,7 +60,7 @@ describe('design tokens (SC-007, FR-025)', () => {
 
   // ---- text the CSS draws with its own colour or opacity (T077) ----
   const readCss = (file: string) => readFileSync(file, 'utf8').replace(/\/\*[\s\S]*?\*\//g, ''); // comments would join the next selector
-  const CSS = { card: readCss('src/styles/card.css'), shell: readCss('src/styles/shell.css') };
+  const CSS = { card: readCss('src/styles/card.css'), shell: readCss('src/styles/shell.css'), discovery: readCss('src/styles/discovery.css') };
   const escape = (selector: string) => selector.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 
   /** The value of `prop` in the first rule whose selector list contains `selector` exactly. */
@@ -112,5 +112,15 @@ describe('design tokens (SC-007, FR-025)', () => {
       const bg = solid(surface, t['--bg']);
       expect(contrastRatio(over(`rgba(${rgb(solid(token)).join(',')},${opacity})`, bg), bg), `${selector} on ${surface}`).toBeGreaterThanOrEqual(4.5);
     }
+  });
+
+  // ---- discovery styles (palette, home, lists; FR-019) ----
+  // Every text colour there must be a token already proven at 4.5:1 on all three surfaces (the TEXT tests above),
+  // so a new colour cannot slip in unchecked. Text on a filled accent uses --bg, as the skip link does.
+  it('should paint text in discovery.css only with audited tokens', () => {
+    const allowed = new Set([...TEXT, '--bg', 'inherit', 'currentColor']);
+    const used = [...CSS.discovery.matchAll(/(?:^|[;{\s])color\s*:\s*([^;}]+)/g)].map((m) => m[1].trim().replace(/^var\((--[\w-]+)\)$/, '$1'));
+    expect(used.length).toBeGreaterThan(0);
+    expect(used.filter((v) => !allowed.has(v))).toEqual([]);
   });
 });

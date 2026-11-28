@@ -1,0 +1,24 @@
+---
+// The command palette's markup (contracts/ui-contract.md § Palette). A native <dialog>: showModal() gives the
+// focus trap, Esc and an inert background. The behaviour lives in src/scripts/palette.ts, loaded when idle.
+// Rendered by Shell on every page, so the script looks elements up when it needs them and keeps no references.
+---
+
+<dialog id="palette" class="palette" aria-labelledby="palette-title">
+  <h2 id="palette-title" class="sr-only">Search cards</h2>
+  <input
+    id="palette-input"
+    type="search"
+    role="combobox"
+    aria-label="Search titles, aliases and tags"
+    aria-expanded="false"
+    aria-controls="palette-results"
+    aria-autocomplete="list"
+    autocomplete="off"
+    spellcheck="false"
+    placeholder="Search titles, aliases and tags"
+  />
+  <ul id="palette-results" role="listbox" aria-label="Results"></ul>
+  <p id="palette-status" role="status"></p>
+  <p class="palette-keys" aria-hidden="true"><kbd>↑</kbd><kbd>↓</kbd> move · <kbd>↵</kbd> open · <kbd>esc</kbd> close</p>
+</dialog>

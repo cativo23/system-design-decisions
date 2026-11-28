@@ -1,25 +1,54 @@
 ---
-import { getCollection } from 'astro:content';
-import Base from '../layouts/Base.astro';
-import { domainBySlug } from '../lib/domains.ts';
+// The home (FR-013): hero, two entry points, the 13 domains, and the freshness strip. Replaces the Phase 1 index.
+import DomainTile from '../components/DomainTile.astro';
+import Shell from '../layouts/Shell.astro';
+import { freshness } from '../lib/discovery/freshness.ts';
+import { loadSite } from '../lib/discovery/load.ts';
 
-// Learning-path order: domain number, then the card's order within it (FR-020a).
-const cards = (await getCollection('cards'))
-  .map((card) => ({ ...card.data, domain: domainBySlug(card.data.domain)! }))
-  .sort((a, b) => a.domain.number - b.domain.number || a.order - b.order);
+const { cards, catalog } = await loadSite();
+const recent = freshness(cards);
 ---
 
-<Base title="Systems Field Guide">
-  <main>
-    <h1>Systems Field Guide</h1>
-    <ul>
+<Shell title="Systems Field Guide" kind="home">
+  <div class="home">
+    <section class="hero" aria-labelledby="home-title">
+      <div class="prompt"><span class="path">~</span><span class="sym">❯</span><span class="cmd">cat README.md</span></div>
+      <h1 id="home-title">Systems Field Guide</h1>
+      <p class="lede">
+        A field guide to how software systems are built in industry. Each card is one decision: the problem it solves, how it works,
+        when to use it and when to avoid it, and what it costs.
+      </p>
+      <p class="for">For engineers who design or review systems and want the trade-offs, not a tutorial.</p>
+      <div class="entries">
+        <a class="btn primary" href="/path/">Start the learning path</a>
+        <button type="button" class="btn search-entry" data-open-palette aria-haspopup="dialog">Search <kbd aria-hidden="true">/</kbd></button>
+      </div>
+    </section>
+
+    <section aria-labelledby="domains-title">
+      <h2 id="domains-title" class="section-title">Domains</h2>
+      <ul class="tiles">
+        {catalog.map((summary) => <DomainTile summary={summary} />)}
+      </ul>
+    </section>
+
+    <section aria-labelledby="fresh-title">
+      <h2 id="fresh-title" class="section-title">Recently reviewed</h2>
       {
-        cards.map((card) => (
-          <li>
-            <a href={`/cards/${card.id}/`}>{card.title}</a> · {card.domain.name} · {card.status.toUpperCase()}
-          </li>
-        ))
+        recent.length === 0 ? (
+          <p class="empty">No cards are published yet.</p>
+        ) : (
+          <ol class="fresh">
+            {recent.map((item) => (
+              <li>
+                <a href={item.href}>{item.title}</a>
+                <span class={`radar sm ${item.status}`}>{item.status.toUpperCase()}</span>
+                <span class="when">reviewed {item.reviewed}</span>
+              </li>
+            ))}
+          </ol>
+        )
       }
-    </ul>
-  </main>
-</Base>
+    </section>
+  </div>
+</Shell>

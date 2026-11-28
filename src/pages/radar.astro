@@ -1,0 +1,42 @@
+---
+// The radar (FR-011): published cards grouped by adopt, trial, assess and hold. All four groups always show.
+import Shell from '../layouts/Shell.astro';
+import { loadSite } from '../lib/discovery/load.ts';
+import { radarGroups } from '../lib/discovery/radar.ts';
+
+const { catalog } = await loadSite();
+const groups = radarGroups(catalog);
+---
+
+<Shell title="Radar · Systems Field Guide" kind="radar">
+  <div class="page">
+    <div class="prompt"><span class="path">~</span><span class="sym">❯</span><span class="cmd">cat radar.md</span></div>
+    <h1>Radar</h1>
+    <p class="lede">Every published card by its current radar status: what to adopt, trial, assess, and hold back from.</p>
+    {
+      groups.map(({ status, cards }) => (
+        <section class="radar-group" aria-labelledby={`radar-${status}`}>
+          <h2 id={`radar-${status}`}>
+            <span class={`radar ${status}`}>{status.toUpperCase()}</span>
+            <span class="count">{cards.length}</span>
+          </h2>
+          {cards.length === 0 ? (
+            <p class="empty">No published card is {status} yet.</p>
+          ) : (
+            <ul class="radar-list">
+              {cards.map((card) => (
+                <li>
+                  <a class="row" href={card.href}>
+                    <span class="t">{card.title}</span>
+                    <span class="d">{card.domain}</span>
+                    <span class="when">reviewed {card.reviewed}</span>
+                  </a>
+                </li>
+              ))}
+            </ul>
+          )}
+        </section>
+      ))
+    }
+  </div>
+</Shell>

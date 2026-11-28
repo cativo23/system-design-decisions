@@ -27,7 +27,7 @@ describe('validateCards: cross-card rules', () => {
   });
 
   it('should pass a related id that is another written card', () => {
-    const cards = [card('a.mdx', { related: rel('beta2') }), card('b.mdx', { id: 'beta2' })];
+    const cards = [card('a.mdx', { related: rel('beta2') }), card('b.mdx', { id: 'beta2', order: '3' })];
     const topics = [...TOPICS, { id: 'beta2', title: 'Beta 2', domainNumber: 1, state: 'pending' as const }];
     expect(validateCards(cards, topics, TODAY, 'cards')).toEqual([]);
   });
@@ -57,6 +57,24 @@ describe('validateCards: cross-card rules', () => {
       { file: 'b.mdx', id: 'alpha', rule: 'id-duplicate', detail: 'id "alpha" is also used by a.mdx, c.mdx' },
       { file: 'c.mdx', id: 'alpha', rule: 'id-duplicate', detail: 'id "alpha" is also used by a.mdx, b.mdx' },
     ]);
+  });
+
+  it('should report order-matches-topics when order differs from the position in the topic list', () => {
+    // beta is the 2nd topic of domain 1 (see fixtures/valid/TOPICS.md), but the card says order 1.
+    const failures = validateCards([card('b.mdx', { id: 'beta', order: '1', related: '[]' })], TOPICS, TODAY, 'cards');
+    expect(failures).toEqual([
+      { file: 'b.mdx', id: 'beta', rule: 'order-matches-topics', detail: expect.stringMatching(/order 1.*position 2.*TOPICS\.md/) },
+    ]);
+  });
+
+  it('should pass a card whose order equals its position within its domain in the topic list', () => {
+    expect(validateCards([card('a.mdx')], TOPICS, TODAY, 'cards')).toEqual([]);
+    expect(validateCards([card('g.mdx', { id: 'gamma', domain: 'distributed-data', order: '1' })], TOPICS, TODAY, 'cards')).toEqual([]);
+  });
+
+  it('should not report order-matches-topics for a card that is not in the topic list (id-not-in-topics covers it)', () => {
+    const rules = validateCards([card('x.mdx', { id: 'ghost', order: '9' })], TOPICS, TODAY, 'cards').map((f) => f.rule);
+    expect(rules).toEqual(['id-not-in-topics']);
   });
 
   it('should report id-not-in-topics for a card missing from the master topic list', () => {

@@ -1,0 +1,19 @@
+---
+// The catalog (FR-008): all 13 domains in order with published out of total.
+import DomainTile from '../../components/DomainTile.astro';
+import Shell from '../../layouts/Shell.astro';
+import { loadSite } from '../../lib/discovery/load.ts';
+
+const { catalog } = await loadSite();
+---
+
+<Shell title="Catalog · Systems Field Guide" kind="catalog">
+  <div class="page">
+    <div class="prompt"><span class="path">~/catalog</span><span class="sym">❯</span><span class="cmd">ls</span></div>
+    <h1>Catalog</h1>
+    <p class="lede">Thirteen domains, in the order the learning path reads them. Each shows how many of its cards are published.</p>
+    <ul class="tiles">
+      {catalog.map((summary) => <DomainTile summary={summary} />)}
+    </ul>
+  </div>
+</Shell>

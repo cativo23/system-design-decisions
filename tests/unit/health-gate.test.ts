@@ -10,7 +10,7 @@ function res(status: number, headers: Record<string, string>, body: string) {
 }
 
 const html = (body: string, head = ROBOTS_META) => `<html><head>${head}</head><body>${body}</body></html>`;
-const INDEX = html('<ul><li><a href="/cards/saga/">Saga</a></li></ul>');
+const INDEX = html('<a href="/path/">Start</a><ul><li><a href="/cards/saga/">Saga</a></li></ul>');
 const CARD = html('<h1>Saga</h1><h2>TL;DR</h2>');
 
 describe('checkResponse: version', () => {
@@ -38,6 +38,11 @@ describe('checkResponse: version', () => {
 });
 
 describe('checkResponse: index', () => {
+  it('should fail when the home has no link to the learning path (the old Phase 1 index was deployed)', () => {
+    const phase1 = html('<ul><li><a href="/cards/saga/">Saga</a></li></ul>');
+    expect(checkResponse('index', res(200, NOINDEX, phase1), SHA)).toEqual(['GET /: no link to /path/']);
+  });
+
   it('should pass with the header, the meta and the link to Saga', () => {
     expect(checkResponse('index', res(200, NOINDEX, INDEX), SHA)).toEqual([]);
   });
@@ -61,12 +66,12 @@ describe('checkResponse: index', () => {
   });
 
   it('should fail when the robots meta tag is missing', () => {
-    const body = html('<a href="/cards/saga/">Saga</a>', '');
+    const body = html('<a href="/path/">Start</a><a href="/cards/saga/">Saga</a>', '');
     expect(checkResponse('index', res(200, NOINDEX, body), SHA)).toEqual([expect.stringMatching(/^GET \/: .*robots meta/)]);
   });
 
   it('should fail when the link to /cards/saga/ is missing', () => {
-    expect(checkResponse('index', res(200, NOINDEX, html('<p>empty</p>')), SHA)).toEqual([
+    expect(checkResponse('index', res(200, NOINDEX, html('<a href="/path/">Start</a>')), SHA)).toEqual([
       expect.stringMatching(/^GET \/: .*\/cards\/saga\//),
     ]);
   });
@@ -187,3 +192,41 @@ describe('findFontHref', () => {
     expect(findFontHref(html('<p>none</p>'))).toBeNull();
   });
 });
+
+describe('checkResponse: search-index (contracts/build-budget.md § Health gate)', () => {
+  const VALID = JSON.stringify({ version: 1, entries: [{ id: 'saga' }] });
+  const check = (r: ReturnType<typeof res>) => checkResponse('search-index', r, SHA);
+
+  it('should pass with 200, noindex and a version 1 index (the page robots meta does not apply to JSON)', () => {
+    expect(check(res(200, NOINDEX, VALID))).toEqual([]);
+  });
+
+  it('should pass an index with no entries yet', () => {
+    expect(check(res(200, NOINDEX, JSON.stringify({ version: 1, entries: [] })))).toEqual([]);
+  });
+
+  it('should fail on a non-200 status and name the path', () => {
+    expect(check(res(404, NOINDEX, VALID))).toEqual([expect.stringMatching(/^GET \/search-index\.json: .*404/)]);
+  });
+
+  it('should fail on a redirect', () => {
+    expect(check(res(301, { Location: '/x' }, ''))).toEqual([expect.stringMatching(/301/)]);
+  });
+
+  it('should fail when X-Robots-Tag is missing, or lacks noindex', () => {
+    expect(check(res(200, {}, VALID))).toEqual(['GET /search-index.json: X-Robots-Tag missing']);
+    expect(check(res(200, { 'X-Robots-Tag': 'nofollow' }, VALID))).toEqual([expect.stringMatching(/noindex/)]);
+  });
+
+  it('should fail when the body is not JSON (an HTML error page served with 200)', () => {
+    expect(check(res(200, NOINDEX, '<html>oops</html>'))).toEqual([expect.stringMatching(/^GET \/search-index\.json: .*JSON/)]);
+  });
+
+  it.each([
+    ['an unknown version', JSON.stringify({ version: 2, entries: [] })],
+    ['entries that are not a list', JSON.stringify({ version: 1, entries: {} })],
+  ])('should fail for %s', (_, body) => {
+    expect(check(res(200, NOINDEX, body))).toEqual([expect.stringMatching(/version 1.*entries/)]);
+  });
+});
+

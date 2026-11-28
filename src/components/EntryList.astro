@@ -1,0 +1,36 @@
+---
+// Rows of a domain page and of the learning path (contracts/ui-contract.md § Entry rows).
+// Published: a link with its radar badge. Not published: dimmed text, no link, no badge, and a hidden
+// "not yet available". Never a toggle to hide the unwritten ones, never an MVP/later label (FR-009).
+import type { CatalogEntry } from '../lib/discovery/catalog.ts';
+
+interface Props {
+  entries: CatalogEntry[];
+}
+const { entries } = Astro.props;
+const pad = (n: number) => String(n).padStart(2, '0');
+---
+
+<ol class="entries-list">
+  {
+    entries.map((e) =>
+      e.published && e.href && e.status ? (
+        <li>
+          <a class="row" href={e.href}>
+            <span class="pos">{pad(e.position)}</span>
+            <span class="t">{e.title}</span>
+            <span class={`radar sm ${e.status}`}>{e.status.toUpperCase()}</span>
+          </a>
+        </li>
+      ) : (
+        <li>
+          <span class="row planned">
+            <span class="pos">{pad(e.position)}</span>
+            <span class="t">{e.title}</span>
+            <span class="sr-only">not yet available</span>
+          </span>
+        </li>
+      ),
+    )
+  }
+</ol>

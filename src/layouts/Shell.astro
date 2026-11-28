@@ -1,42 +1,62 @@
 ---
-// The fixed frame around a card: top bar, tree, reading column, table of contents, status line.
-// The tree is persisted across navigations; everything else re-renders per page (R5).
+// The fixed frame around every page: top bar, tree, reading column, status line, and for cards the
+// table of contents. The tree is persisted across navigations; everything else re-renders per page (R5).
+// `kind` decides the table of contents and the status line fields (research.md R7).
 import { getCollection } from 'astro:content';
+import SearchDialog from '../components/SearchDialog.astro';
 import StatusLine from '../components/StatusLine.astro';
 import Toc from '../components/Toc.astro';
 import TopBar from '../components/TopBar.astro';
 import Tree from '../components/Tree.astro';
+import { statusFields, type PageKind } from '../lib/discovery/status-fields.ts';
 import { domainBySlug } from '../lib/domains.ts';
 import { buildTree } from '../lib/layout/tree.ts';
 import { parseTopics } from '../lib/topics.ts';
 import Base from './Base.astro';
 import topicsMarkdown from '../../docs/TOPICS.md?raw';
 import '../styles/shell.css';
+import '../styles/discovery.css';
 
 interface Props {
   title: string;
-  card: { id: string; domain: string; status: string };
+  kind: PageKind;
+  /** Required for `card`. */
+  card?: { id: string; domain: string; status: string };
+  /** Domain slug, required for `domain`. */
+  domain?: string;
 }
-const { title, card } = Astro.props;
+const { title, kind, card, domain } = Astro.props;
+const isCard = kind === 'card';
 
 // Topic list errors are the validator's job; the page only needs the ids and titles.
 const { topics } = parseTopics(topicsMarkdown, 'docs/TOPICS.md');
 const writtenIds = new Set((await getCollection('cards')).map((c) => c.data.id));
-const tree = buildTree(topics, writtenIds, card.id);
-const d = domainBySlug(card.domain)!;
-const here = tree.find((t) => t.number === d.number)!;
+const tree = buildTree(topics, writtenIds, card?.id ?? '');
+const d = domainBySlug(card?.domain ?? domain ?? '');
+const here = d ? tree.find((t) => t.number === d.number) : undefined;
+// A domain page opens its own domain in the tree; other pages leave the tree as the reader had it.
+if (kind === 'domain' && here) here.open = true;
+const domainLabel = d ? `${String(d.number).padStart(2, '0')} ${d.slug}` : undefined;
+const fields = statusFields(kind, {
+  domain: domainLabel,
+  file: card ? `${card.id}.md` : undefined,
+  status: card?.status,
+  read: here?.read,
+  total: here?.total,
+});
 ---
 
 <Base title={title}>
   <a class="skip-link" href="#main">Skip to content</a>
   <TopBar />
-  <div class="shell">
+  <SearchDialog />
+  <div class:list={['shell', { wide: !isCard }]}>
     <Tree tree={tree} />
     <main id="main" tabindex="-1"><slot /></main>
-    <Toc />
+    {isCard && <Toc />}
   </div>
   <div class="backdrop" hidden></div>
-  <StatusLine domain={`${String(d.number).padStart(2, '0')} ${d.slug}`} file={`${card.id}.md`} status={card.status} read={here.read} total={here.total} />
+  <StatusLine fields={fields} sections={isCard} />
   <script>
     import '../scripts/shell.ts';
   </script>

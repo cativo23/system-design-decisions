@@ -1,0 +1,42 @@
+---
+// The learning path (FR-010): every domain and card in reading order, with a start point at the first published card.
+import EntryList from '../components/EntryList.astro';
+import Shell from '../layouts/Shell.astro';
+import { startPoint } from '../lib/discovery/catalog.ts';
+import { loadSite } from '../lib/discovery/load.ts';
+
+const { catalog } = await loadSite();
+const start = startPoint(catalog);
+---
+
+<Shell title="Learning path · Systems Field Guide" kind="path">
+  <div class="page">
+    <div class="prompt"><span class="path">~</span><span class="sym">❯</span><span class="cmd">less path.md</span></div>
+    <h1>Learning path</h1>
+    <p class="lede">
+      The recommended reading order, domain by domain and card by card. Dimmed cards are planned and not yet available; they will
+      become links here, in place, when they are published.
+    </p>
+    {
+      start ? (
+        <a class="btn primary start" href={start.href!}>Start with {start.title}</a>
+      ) : (
+        <p class="empty">No card is published yet, so there is no place to start.</p>
+      )
+    }
+    {
+      catalog.map(({ domain, entries, label }) => (
+        <section class="path-domain" aria-labelledby={`path-${domain.slug}`}>
+          <h2 id={`path-${domain.slug}`}>
+            <a href={`/catalog/${domain.slug}/`}>
+              <span class="n">{String(domain.number).padStart(2, '0')}</span>
+              {domain.name}
+            </a>
+            <span class="count">{label}</span>
+          </h2>
+          {entries.length > 0 ? <EntryList entries={entries} /> : <p class="empty">No cards are planned in this domain yet.</p>}
+        </section>
+      ))
+    }
+  </div>
+</Shell>

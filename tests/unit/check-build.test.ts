@@ -1,6 +1,6 @@
 import { randomBytes } from 'node:crypto';
 import { describe, expect, it } from 'vitest';
-import { BUDGETS, checkPage, formatReport, measurePage } from '../../scripts/check-build.ts';
+import { BUDGETS, checkPage, checkSearchIndex, formatReport, measurePage } from '../../scripts/check-build.ts';
 
 const ROBOTS = '<meta name="robots" content="noindex, nofollow">';
 // The two CSS rules every page must carry (constitution V), and a structure that passes every check.
@@ -69,6 +69,14 @@ describe('checkPage: JavaScript budget (gzip ≤ 12 KB)', () => {
       '/_astro/a.js': Buffer.from('import"./b.js";console.log(1)'),
       '/_astro/b.js': Buffer.from(`import{x}from"./c.js";export const y=1`),
       '/_astro/c.js': noise(13000),
+    };
+    expect(checkPage(page({ head }), assets)).toEqual([expect.stringMatching(/^JavaScript is/)]);
+  });
+
+  it('should follow a dynamic import written with a template literal, as the bundler emits it', () => {
+    const assets = {
+      '/_astro/a.js': Buffer.from('window.requestIdleCallback(()=>import(`./b.js`))'),
+      '/_astro/b.js': noise(13000),
     };
     expect(checkPage(page({ head }), assets)).toEqual([expect.stringMatching(/^JavaScript is/)]);
   });
@@ -210,7 +218,7 @@ describe('measurePage and formatReport', () => {
 });
 
 describe('checkPage: structure (contracts/build-budget.md § Structure checks)', () => {
-  const problems = (html: string, opts?: { index?: boolean }) => checkPage(html, {}, opts);
+  const problems = (html: string) => checkPage(html, {});
 
   it('should pass a page with the full structure', () => {
     expect(problems(page())).toEqual([]);
@@ -273,10 +281,93 @@ describe('checkPage: structure (contracts/build-budget.md § Structure checks)',
     expect(checkPage(html, { '/_astro/a.css': css })).toEqual([]);
   });
 
-  it('should exempt the index page from the skip link and landmark checks only', () => {
+  it('should not exempt the root page: the home has the shell, so it needs the skip link and landmarks too', () => {
     const body = '<main><h1>Systems Field Guide</h1></main>';
-    expect(problems(page({ body }), { index: true })).toEqual([]);
-    expect(problems(page({ body: '<main></main>' }), { index: true })).toEqual([expect.stringMatching(/<h1>/)]);
-    expect(problems(page({ body }).replace('[hidden]{display:none!important}', ''), { index: true })).toEqual([expect.stringMatching(/\[hidden\]/)]);
+    // An `index` option used to switch those checks off; it no longer exists, so passing one changes nothing.
+    const failures = (checkPage as (html: string, assets: object, opts?: object) => string[])(page({ body }), {}, { index: true });
+    expect(failures).toEqual([expect.stringMatching(/skip link/), expect.stringMatching(/id="main"/), expect.stringMatching(/<header>/)]);
+  });
+
+});
+
+describe('checkPage: search palette on shell pages (contracts/build-budget.md § Structure checks)', () => {
+  // A "shell page" is one with the top bar; the Phase 1 index has none and is skipped until the home replaces it.
+  const TRIGGER = '<button type="button" class="search" data-open-palette aria-label="Search"></button>';
+  const DIALOG = '<dialog id="palette"></dialog>';
+  const shell = (parts: { trigger?: string; dialog?: string } = {}) => {
+    const { trigger = TRIGGER, dialog = DIALOG } = parts;
+    const body = `<a class="skip-link" href="#main">Skip to content</a><header class="topbar">${trigger}</header>${dialog}<main id="main"><h1>Saga</h1></main>`;
+    return page({ body });
+  };
+
+  it('should pass a shell page with a live trigger and one palette dialog', () => {
+    expect(checkPage(shell(), {})).toEqual([]);
+  });
+
+  it('should fail when the search trigger is aria-disabled', () => {
+    expect(checkPage(shell({ trigger: TRIGGER.replace('<button ', '<button aria-disabled="true" ') }), {})).toEqual([expect.stringMatching(/search trigger/)]);
+  });
+
+  it('should fail when the search trigger is missing', () => {
+    expect(checkPage(shell({ trigger: '' }), {})).toEqual([expect.stringMatching(/search trigger/)]);
+  });
+
+  it('should fail when the trigger is not a <button>', () => {
+    expect(checkPage(shell({ trigger: '<a class="search" href="#">Search</a>' }), {})).toEqual([expect.stringMatching(/search trigger/)]);
+  });
+
+  it('should fail when the palette dialog is missing, and when there are two', () => {
+    expect(checkPage(shell({ dialog: '' }), {})).toEqual([expect.stringMatching(/exactly one <dialog id="palette">.*found 0/)]);
+    expect(checkPage(shell({ dialog: DIALOG + DIALOG }), {})).toEqual([expect.stringMatching(/exactly one <dialog id="palette">.*found 2/)]);
+  });
+
+  it('should not ask a page without the top bar for the palette', () => {
+    expect(checkPage(page(), {})).toEqual([]);
   });
 });
+
+describe('checkSearchIndex (contracts/build-budget.md § New: search index)', () => {
+  const PAGES = ['cards/saga/index.html', 'index.html'];
+  const entry = (href: string) => ({ id: 'saga', title: 'Saga', aliases: [], tags: [], domain: 'Distributed data & workflows', status: 'adopt', href });
+  const index = (entries: unknown[] = [entry('/cards/saga/')], version: unknown = 1) => JSON.stringify({ version, entries });
+
+  it('should pass a valid index whose links exist in the build', () => {
+    expect(checkSearchIndex(index(), PAGES)).toEqual([]);
+  });
+
+  it('should pass an empty entry list (nothing published yet)', () => {
+    expect(checkSearchIndex(index([]), PAGES)).toEqual([]);
+  });
+
+  it('should pin the budget at 12 KB gzipped', () => {
+    expect(BUDGETS.searchIndex).toBe(12 * 1024);
+  });
+
+  it('should fail over budget, in the documented message shape', () => {
+    const big = Array.from({ length: 40 }, () => ({ ...entry('/cards/saga/'), title: noise(600).toString('base64') }));
+    expect(checkSearchIndex(index(big), PAGES)).toEqual([
+      expect.stringMatching(new RegExp(`^search-index\\.json: size is \\d+ bytes \\(budget ${BUDGETS.searchIndex}\\)$`)),
+    ]);
+  });
+
+  it('should fail when the file is not JSON', () => {
+    expect(checkSearchIndex('{nope', PAGES)).toEqual([expect.stringMatching(/^search-index\.json: .*JSON/)]);
+  });
+
+  it.each([
+    ['an unknown version', index([entry('/cards/saga/')], 2)],
+    ['no version', JSON.stringify({ entries: [] })],
+    ['entries that are not a list', JSON.stringify({ version: 1, entries: {} })],
+  ])('should fail for %s', (_, text) => {
+    expect(checkSearchIndex(text, PAGES)).toEqual([expect.stringMatching(/^search-index\.json: .*version 1.*entries/)]);
+  });
+
+  it('should fail for a link to a page that is not in the build, naming it', () => {
+    expect(checkSearchIndex(index([entry('/cards/gone/')]), PAGES)).toEqual([expect.stringMatching(/^search-index\.json: .*\/cards\/gone\//)]);
+  });
+
+  it('should report every problem at once', () => {
+    expect(checkSearchIndex(index([entry('/a/'), entry('/b/')]), PAGES)).toHaveLength(2);
+  });
+});
+
