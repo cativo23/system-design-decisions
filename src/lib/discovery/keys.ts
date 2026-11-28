@@ -1,4 +1,4 @@
-import { currentSection } from '../layout/toc.ts';
+import { currentSection, lastOnScreen } from '../layout/toc.ts';
 
 // Keyboard decisions as pure functions; src/scripts/shell.ts only reads the event and acts on the answer.
 
@@ -57,7 +57,7 @@ export function shouldHandleSectionKey(event: KeyInfo, active: ActiveInfo, conte
  */
 export function reachedSection(tops: { id: string; top: number }[], line: number, atBottom: boolean, viewport: number): string | null {
   if (tops.length === 0) return null;
-  if (atBottom) return [...tops].reverse().find((t) => t.top < viewport)?.id ?? null;
+  if (atBottom) return lastOnScreen(tops, viewport);
   return tops[0].top > line ? null : currentSection(tops, line);
 }
 

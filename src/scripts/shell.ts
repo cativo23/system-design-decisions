@@ -47,7 +47,8 @@ function init(navigated: boolean): () => void {
       const heading = document.getElementById(a.hash.slice(1));
       return heading ? [{ id: heading.id, top: heading.getBoundingClientRect().top }] : [];
     });
-    const current = currentSection(tops, READING_LINE);
+    const atBottom = window.scrollY >= document.documentElement.scrollHeight - window.innerHeight - 2;
+    const current = currentSection(tops, READING_LINE, atBottom ? { viewport: window.innerHeight } : undefined);
     for (const a of tocLinks) {
       const on = a.hash === `#${current}`;
       a.classList.toggle('active', on);
