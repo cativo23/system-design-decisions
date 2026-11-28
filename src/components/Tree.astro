@@ -13,6 +13,12 @@ const pad = (n: number) => String(n).padStart(2, '0');
 
 <nav id="tree" class="tree" aria-label="Catalog" transition:persist="tree">
   <button type="button" class="tree-close" aria-label="Close catalog">× close</button>
+  <!-- Phone only (CSS): the top bar has no room for these below 881 px. The tree persists across pages, so no current-page mark here. -->
+  <nav class="primary-m" aria-label="Primary">
+    <a href="/catalog/">catalog</a>
+    <a href="/path/">path</a>
+    <a href="/radar/">radar</a>
+  </nav>
   <div class="root">~/catalog</div>
   {
     tree.map((d, i) => {

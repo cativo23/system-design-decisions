@@ -1,13 +1,22 @@
 ---
 // Top bar: brand link and the search trigger. The trigger opens the palette (shell.ts) and is hidden until
 // scripts run, like the phone menu button, so with scripts blocked there is no dead button (SC-010).
-// The three page links arrive with the pages themselves (T053).
+// The three page links (research.md R5): here at desktop width, inside the phone menu below 881 px (Tree.astro).
+const { pathname } = Astro.url;
+const LINKS = [
+  { href: '/catalog/', label: 'catalog' },
+  { href: '/path/', label: 'path' },
+  { href: '/radar/', label: 'radar' },
+];
 ---
 
 <header class="topbar">
   <div class="topbar-inner">
     <button type="button" class="menu-btn" aria-expanded="false" aria-controls="tree" aria-label="Open catalog">≡</button>
     <a class="brand" href="/"><span class="p">❯</span>systems-field-guide<span class="caret" aria-hidden="true"></span></a>
+    <nav class="primary" aria-label="Primary">
+      {LINKS.map((l) => <a href={l.href} aria-current={pathname.startsWith(l.href) ? 'page' : undefined}>{l.label}</a>)}
+    </nav>
     <button type="button" class="search" data-open-palette aria-haspopup="dialog" aria-keyshortcuts="Control+K Meta+K /" aria-label="Search">
       <span class="slash" aria-hidden="true">/</span> search <kbd class="hint hide-sm" aria-hidden="true">Ctrl K</kbd>
     </button>
