@@ -1,0 +1,205 @@
+---
+description: "Task list for the Discovery feature (search, catalog, learning path, radar, home)"
+---
+
+# Tasks: Discovery (search, catalog, learning path, radar, home)
+
+**Input**: Design documents from `specs/003-discovery-search-paths/`
+
+**Prerequisites**: [plan.md](plan.md), [spec.md](spec.md), [research.md](research.md), [data-model.md](data-model.md), [contracts/](contracts/), [quickstart.md](quickstart.md)
+
+**Tests**: REQUIRED for all logic (constitution VII, non-negotiable). Every test task MUST be
+written and **seen to fail for the right reason** before its implementation task. Presentational
+markup (Astro components, CSS, DOM glue in `src/scripts/`, nginx) is exempt from unit tests and
+is verified with the [quickstart](quickstart.md) section named in the task.
+
+**Organization**: by user story (US1–US6 from spec.md), after a short foundational phase. US1
+(palette) and US2 (home) are both P1; US1 comes first because it needs nothing from the catalog.
+No new package is installed by this feature.
+
+## Format: `[ID] [P?] [Story] Description`
+
+- **[P]**: can run in parallel (different files, no dependency on an incomplete task)
+- **[Story]**: US1–US6
+- Paths are repo-relative (single project, plan.md § Project Structure)
+- "data-model.md `Entity.field`" is the canonical definition of a constrained field; tasks cite it instead of repeating it
+
+---
+
+## Phase 1: Setup
+
+**Purpose**: confirm a green baseline and create the shared test data.
+
+- [ ] T001 Run `npm ci`, `npm test`, `npm run lint`, `npm run validate`, `npm run build` and `npm run check:build` on the branch. All must pass before any change. Note the test count (373 at Phase 2 close) and save `dist/cards/saga/index.html` aside outside the repo (scratchpad) for the T009 comparison.
+- [ ] T002 [P] Create `tests/helpers/discovery-fixtures.ts` exporting sample `TopicEntry[]` and card records (not files): 5 published cards over 3 domains, all four radar statuses used, two cards sharing a `reviewed` month, one domain with zero published cards, and one published card whose topic-list `state` is `drafting` (as Saga today). Shapes follow data-model.md § Inputs.
+
+---
+
+## Phase 2: Foundational (blocks every story)
+
+**Purpose**: the catalog module, the status line per page kind, the order rule, and a shell that can host pages that are not cards.
+
+**⚠️ CRITICAL**: no user story starts until this phase is done.
+
+- [ ] T003 [P] Write `tests/unit/status-fields.test.ts` for `statusFields(kind, context)` (data-model.md `StatusFields`, `PageKind`): `card` keeps `READ`, domain, file, status, progress; `domain` returns mode `catalog` and the domain only; `home`, `catalog`, `path`, `radar` return only their mode label. Run it and see it fail because the module does not exist.
+- [ ] T004 [P] Implement `src/lib/discovery/status-fields.ts` until T003 is green, per data-model.md `StatusFields.mode`, `StatusFields.domain`, `StatusFields.file`, `StatusFields.status` and `StatusFields.progress` (omitted fields stay absent, not empty).
+- [ ] T005 [P] Write `tests/unit/catalog.test.ts` for `buildCatalog(topics, publishedCards)` using T002 fixtures: domain order 1–13; each topic once (data-model.md `DomainSummary.entries`); `CatalogEntry.published` comes from the cards, not the topic `state`; `CatalogEntry.status`, `CatalogEntry.reviewed` and `CatalogEntry.href` are `null` when unpublished (FR-009); `CatalogEntry.position` and the path order follow topic-list order (R6); `DomainSummary.published`, `DomainSummary.total` and `DomainSummary.meter` (via `domainMeter`) match counts, with a zero-published domain giving `0 / N` (FR-014); an invariant test that the concatenated path has every topic exactly once (SC-005, SC-006). See them fail.
+- [ ] T006 [P] Implement `src/lib/discovery/catalog.ts` until T005 is green, per data-model.md `CatalogEntry.published`, `CatalogEntry.status`, `CatalogEntry.reviewed`, `CatalogEntry.href`, `CatalogEntry.position`, `DomainSummary.published`, `DomainSummary.total` and `DomainSummary.meter`. Reuse `DOMAINS` and `domainMeter`; do not duplicate them. Also export a small `toPublished(collectionEntries)` mapper (card data → the shape `buildCatalog` takes) so no page repeats it.
+- [ ] T007 [P] Add the failing case for the `order-matches-topics` rule (data-model.md § Validation rule added): a fixture card `tests/fixtures/broken/cards/order-mismatch.mdx` whose `order` differs from its topic-list position (with its entry in `tests/fixtures/broken/TOPICS.md`), and a test in `tests/unit/cross-card-rules.test.ts` that expects the failure naming the card, both numbers and the topic-list line. See it fail.
+- [ ] T008 Implement `order-matches-topics` in `src/lib/cards/rules.ts` and run it from `scripts/validate-cards.ts` so `npm run validate` reports it. Confirm the real Saga card still passes (`order: 3`, third in domain 05).
+- [ ] T009 Refactor `src/layouts/Shell.astro` and `src/components/StatusLine.astro` (no unit test, DOM markup; quickstart §4 and §6): `card` prop becomes optional; add a `kind` prop (`PageKind`); render `Toc` and its grid column only for `card` (keep the existing `grid-template-columns: 16.25rem minmax(0, 1fr) 13.125rem` rule for cards, which `tests/unit/font-units.test.ts` asserts; give the other kinds a separate two-column rule); feed `StatusLine` from `statusFields`; leave the persisted tree's open/closed state alone on non-card pages and open only the matching domain on `domain` pages. `src/pages/cards/[id].astro` passes `kind="card"`. Verify the Saga page is unchanged: rebuild and diff `dist/cards/saga/index.html` against the file saved in T001 (only asset hashes may differ).
+
+**Checkpoint**: `npm test`, `npm run lint`, `npm run validate`, `npm run build`, `npm run check:build` green; Saga page identical. Show Carlos.
+
+---
+
+## Phase 3: User Story 1 - Find any card in seconds (P1) 🎯 MVP
+
+**Goal**: the palette, from any page, by keyboard or the top-bar button, with typo-tolerant matching and a loading/empty/error state, working offline after load.
+
+**Independent Test**: quickstart §5 and §8.
+
+- [ ] T010 [P] [US1] Write `tests/unit/search-index.test.ts` for `buildSearchIndex(publishedCards)` (data-model.md `SearchEntry.id`, `.title`, `.aliases`, `.tags`, `.domain` (domain **name**), `.status`, `.href`; contracts/search-index.md): only published cards; deterministic order and bytes for the same input; `version: 1`; empty input gives `entries: []`; a size guard test that 85 generated entries stay ≤ 12 KB gzipped. See it fail.
+- [ ] T011 [P] [US1] Write `tests/unit/match.test.ts` for `search(entries, query, limit)` (research.md R4, contracts/search-index.md § Matcher): normalisation (case, diacritics, symbols as separators); AND over tokens; exact, prefix and typo tiers; typo limits 0/1/2 by length 1–2/3–7/8+ with optimal-string-alignment distance (`sga`→`saga` is 1); same-length-prefix typo match (`distribt`); field weights and order (score, then title); empty query returns `[]`; `(`, `[a-`, `<b>` do not throw; default limit 8. Add the SC-002 test over the T002 fixtures (title, every alias, every tag in the top 3) and the misspelling set (`sga`, `sagaa`, `distribtued transactions`, `consitency` → Saga; `microservces` → a fixture microservices card). Add a loose speed bound (SC-003): one search over 85 generated entries finishes well under 100 ms (assert < 25 ms, run three times and take the best, to avoid flakiness). See it fail.
+- [ ] T012 [P] [US1] Write `tests/unit/keys.test.ts` for `shouldOpenPalette(key event fields, active element info)` (contracts/ui-contract.md § Shortcuts): `Ctrl+K` and `⌘K` open even inside an input; `/` opens only when focus is not in `input`, `textarea`, `select` or `contenteditable` and no modifier is held; other modifier combinations return false. See it fail.
+- [ ] T013 [P] [US1] Write `tests/unit/palette-state.test.ts` for `nextPaletteState(state, event)` and `moveCursor(cursor, count, direction)` (data-model.md `PaletteState`): closed→loading when the index is not ready, closed→ready when it is, loading→ready or error, any→closed; `moveCursor` wraps both ways and returns `-1` when `count` is 0; Enter with cursor `-1` yields no navigation; a long alternating open/close/open/close sequence always ends in a consistent state (edge case: no half-open palette). See it fail.
+- [ ] T014 [US1] Implement `src/lib/discovery/search-index.ts` until T010 is green, per data-model.md `SearchEntry.id`, `SearchEntry.title`, `SearchEntry.aliases`, `SearchEntry.tags`, `SearchEntry.domain` (domain name, not slug), `SearchEntry.status` and `SearchEntry.href`.
+- [ ] T015 [US1] Implement `src/lib/discovery/match.ts` until T011 is green. Refactor only while green.
+- [ ] T016 [P] [US1] Implement `shouldOpenPalette` in `src/lib/discovery/keys.ts` until T012 is green.
+- [ ] T017 [P] [US1] Implement `src/lib/discovery/palette-state.ts` until T013 is green, per data-model.md `PaletteState.state` and `PaletteState.cursor` (`-1` when there are no results).
+- [ ] T018 [US1] Add the static endpoint `src/pages/search-index.json.ts` (official Astro endpoint: exported `GET` returning `Response.json`) using `buildSearchIndex` over the cards collection. Run `npm run build` and check `dist/search-index.json` holds the Saga entry and is under 12 KB gzipped.
+- [ ] T019 [US1] Add `tests/integration/search-collection.test.ts`: read the real cards in `src/content/cards/` with `parseCard`, build the index, and assert the SC-002 property for every real published card (title, each alias, each tag in the top 3). It must pass now and fails the build when a future card breaks it.
+- [ ] T020 [P] [US1] Create `src/components/SearchDialog.astro`: the `<dialog id="palette">` markup of contracts/ui-contract.md § Palette (labelled title, `role="combobox"` input with its aria attributes, `role="listbox"` list, `role="status"` line). Include it once in `Shell.astro`. No script logic here.
+- [ ] T021 [US1] Update `src/components/TopBar.astro` (FR-001): the search trigger becomes a real button named "Search" with `/` and `⌘K`/`Ctrl+K` `<kbd>` hints, hidden until `html[data-js]` exists; remove the `aria-disabled` and the "not available yet" label and the Phase 2 comment.
+- [ ] T022 [US1] Extend `tests/unit/contrast.test.ts` with the foreground/background pairs the palette and kbd hints will use (existing tokens only) and see whether any fails; if one does, fix the choice of token, not the threshold (FR-019).
+- [ ] T023 [P] [US1] Create `src/styles/discovery.css` with the palette styles (dialog, `::backdrop`, input, rows, radar badge reuse, status line, kbd) using existing tokens, a short opacity fade removed under `prefers-reduced-motion: reduce`, 44 px targets at ≤ 880 px, and no use of `hidden` to hide the dialog. Import it from `Shell.astro`.
+- [ ] T024 [US1] Create `src/scripts/palette.ts` (DOM glue; text APIs only, no `innerHTML`): fetch `/search-index.json` once and keep it in memory (R3), render results with `createElement`/`textContent` (title, domain name, radar badge, FR-004), wire `nextPaletteState`, `moveCursor` and `search`, handle the loading, empty-hint, no-match and error lines, close on Esc and backdrop click, restore focus to the previously focused element, follow the highlighted result with Enter or click. `Shell` re-renders the `<dialog>` on every router navigation, so look every element up when the palette opens and never cache a reference from the first load (FR-022).
+- [ ] T025 [US1] Update `src/scripts/shell.ts`: delegated `keydown` on `document`, bound once, calling `shouldOpenPalette` and opening the dialog; click on the trigger; the idle loader (`requestIdleCallback`, `setTimeout` 200 ms fallback) that `import('./palette.ts')`, also triggered by the first open; close the dialog on `astro:before-swap`. Keep every existing behaviour untouched.
+- [ ] T026 [P] [US1] Extend `tests/unit/check-build.test.ts` (red first) with the new structure checks of contracts/build-budget.md § Structure checks: every shell page has a search trigger that is a `<button>` without `aria-disabled`, and exactly one `<dialog id="palette">`. A "shell page" is any HTML file containing `<header class="topbar">`; the Phase 1 `index.html` has none, so these two checks skip it until T032 replaces it (the home exemption itself is removed in T034). See it fail.
+- [ ] T027 [US1] Implement those two checks in `scripts/check-build.ts` until T026 is green, then run `npm run build && npm run check:build` (the existing JS budget of 12 KB may fail here; if so, do **not** raise it yet, T055 owns the budget).
+- [ ] T028 [US1] Run quickstart §5 and §8 in a browser and record the result under the task (palette by keyboard, misspelled queries, no-match line, offline after load, cold-offline error line).
+
+**Checkpoint**: palette works from every page; quickstart §5 and §8 pass. Show Carlos.
+
+---
+
+## Phase 4: User Story 2 - Home page (P1)
+
+**Goal**: the root replaces the Phase 1 index with hero, two entry points, 13 domain tiles and the freshness strip.
+
+**Independent Test**: quickstart §4 (home part) and §9.
+
+- [ ] T029 [P] [US2] Write `tests/unit/freshness.test.ts` for `freshness(publishedCards)` (data-model.md `FreshnessItem.reviewed`, `FreshnessItem.title`, `FreshnessItem.status`): at most 5; `reviewed` descending then `title` ascending; fewer than 5 returns all; empty returns `[]`; each item carries its current status; no history fields. See it fail.
+- [ ] T030 [US2] Implement `src/lib/discovery/freshness.ts` until T029 is green, per data-model.md `FreshnessItem.reviewed` (sort key, `YYYY-MM` string order), `FreshnessItem.title` (tie-break) and `FreshnessItem.status`; cut to 5.
+- [ ] T031 [P] [US2] Create `src/components/DomainTile.astro`: domain number and name, `published / total` text and the `domainMeter` bar (data-model.md `DomainSummary.meter`), link to `/catalog/<slug>/`; reads as `0 / N` and stays linked when empty.
+- [ ] T032 [US2] Replace `src/pages/index.astro` with the home in `Shell` (`kind="home"`): hero (what and who, two short sentences; **draft copy for Carlos to approve**), entry point 1 a link to `/path/`, entry point 2 a button that opens the palette (hidden until `html[data-js]`, R7), the 13 tiles in order from `buildCatalog`, and the freshness strip from `freshness`. Add the home styles to `src/styles/discovery.css`. Remove the old Phase 1 list.
+- [ ] T033 [P] [US2] Extend `tests/unit/check-build.test.ts` (red first): the root `index.html` is no longer exempt from checks 3 and 4 (contracts/build-budget.md § Structure checks). See it fail against the old exemption.
+- [ ] T034 [US2] Remove the `index` exemption in `scripts/check-build.ts` and its CLI plumbing until T033 is green; run `npm run check:build` on the new home.
+- [ ] T035 [P] [US2] Extend `tests/unit/health-gate.test.ts` (red first): the `index` kind also requires an `<a href="/path/">` (contracts/build-budget.md § Health gate). See it fail.
+- [ ] T036 [US2] Implement it in `scripts/health-gate.ts` until T035 is green.
+- [ ] T037 [US2] Run quickstart §4 (home) and §9 (320 px, scripts blocked, reduced motion) for `/`, and record the result. Domain tile links 404 until Phase 5; note it and continue.
+
+**Checkpoint**: home renders in the shell and passes the structure checks. Show Carlos, including the hero copy.
+
+---
+
+## Phase 5: User Story 3 - Browse by domain (P2)
+
+**Goal**: the catalog of 13 domains and one page per domain, in path order, with published and unwritten states.
+
+**Independent Test**: quickstart §4 (catalog and domain part).
+
+- [ ] T038 [P] [US3] Create `src/components/EntryList.astro`: rows of contracts/ui-contract.md § Entry rows (published: link plus radar badge; unpublished: dimmed text, no link, no badge, hidden "not yet available"), driven by `CatalogEntry.published`, `.status` and `.href` (data-model.md `CatalogEntry`).
+- [ ] T039 [US3] Create `src/pages/catalog/index.astro` (`kind="catalog"`): all 13 domains in order, each with `DomainSummary.published` / `.total` and a link to its page (reuse `DomainTile`).
+- [ ] T040 [US3] Create `src/pages/catalog/[domain].astro` (`kind="domain"`, `getStaticPaths` over the 13 `DOMAINS`): the domain's `entries` in `position` order through `EntryList`; the matching tree domain opens (Shell behaviour from T009).
+- [ ] T041 [US3] Run quickstart §4 for `/catalog/` and `/catalog/distributed-data/` and §6 (shell stays put when moving home → catalog → domain → card): record it. Re-run `npm run check:build`.
+
+**Checkpoint**: Show Carlos.
+
+---
+
+## Phase 6: User Story 4 - Learning path (P2)
+
+**Goal**: the recommended order across all domains with a start point at the first published card.
+
+**Independent Test**: quickstart §4 (path part).
+
+- [ ] T042 [P] [US4] Add to `tests/unit/catalog.test.ts` (red first) tests for `startPoint(catalog)`: returns the first published entry in path order; `null` when none is published. See them fail.
+- [ ] T043 [US4] Implement `startPoint` in `src/lib/discovery/catalog.ts` until T042 is green.
+- [ ] T044 [US4] Create `src/pages/path.astro` (`kind="path"`): every domain heading and its entries in path order through `EntryList`, and the start link "Start with <title>" (plain text saying none is available yet when `startPoint` is `null`). Link the home entry point (T032) to this page.
+- [ ] T045 [US4] Run quickstart §4 for `/path/` (each topic once, start link opens Saga) and record it.
+
+**Checkpoint**: Show Carlos.
+
+---
+
+## Phase 7: User Story 5 - Radar (P3)
+
+**Goal**: published cards grouped by adopt, trial, assess, hold.
+
+**Independent Test**: quickstart §4 (radar part).
+
+- [ ] T046 [P] [US5] Write `tests/unit/radar.test.ts` for `radarGroups(publishedCards)` (data-model.md `RadarGroup.status`, `RadarGroup.cards`): always four groups in the order adopt, trial, assess, hold; an empty group is present with `cards: []`; each card appears in exactly one group; cards inside a group are in path order and carry domain name and `reviewed`. See it fail.
+- [ ] T047 [US5] Implement `src/lib/discovery/radar.ts` until T046 is green, per data-model.md `RadarGroup.status` (fixed order adopt, trial, assess, hold) and `RadarGroup.cards` (may be empty).
+- [ ] T048 [US5] Create `src/pages/radar.astro` (`kind="radar"`): the four groups with a heading each, cards as links with domain and reviewed month, and an empty-state sentence in empty groups. Run quickstart §4 for `/radar/` and record it.
+
+**Checkpoint**: Show Carlos.
+
+---
+
+## Phase 8: User Story 6 - `j` and `k` (P3)
+
+**Goal**: section keys on a card, relative to the section the TOC highlights.
+
+**Independent Test**: quickstart §7.
+
+- [ ] T049 [P] [US6] Add to `tests/unit/keys.test.ts` (red first) tests for `adjacentSection(sectionIds, currentId, key)` and `shouldHandleSectionKey(...)` (contracts/ui-contract.md § Shortcuts): `j` returns the next id, `k` the previous; at the first and last section it returns the same id; with the page above the first heading (`currentId` is `null`) `j` goes to the first section and `k` stays; an unknown id behaves like `null`; ignored when the palette is open, focus is in an editable field, a modifier is held, or the page is not a card. See them fail.
+- [ ] T050 [US6] Implement them in `src/lib/discovery/keys.ts` until T049 is green.
+- [ ] T051 [US6] Bind `j`/`k` in `src/scripts/shell.ts` using the TOC's currently highlighted link and `scrollIntoView` (`behavior: 'auto'` when `prefers-reduced-motion` is set, else `'smooth'`); add the shortcut hint (`j / k sections`, `/ search`) to `StatusLine.astro`, hidden on phones with the existing `hide-sm`.
+- [ ] T052 [US6] Run quickstart §7 and record it.
+
+**Checkpoint**: Show Carlos.
+
+---
+
+## Phase 9: Polish and cross-cutting
+
+**Purpose**: reach the pages from a card, enforce the new budgets, fix the docs, run everything.
+
+- [ ] T053 Add the primary navigation (research.md R5): `nav aria-label="Primary"` with links `catalog`, `path`, `radar` in `src/components/TopBar.astro`; at ≤ 880 px the same links are the first block of the phone menu (extend `src/styles/shell.css` / `discovery.css`; reuse the existing menu open/close logic, no new state). Verify at 320 px with no horizontal scroll and 44 px targets.
+- [ ] T054 [P] Extend `tests/unit/check-build.test.ts` (red first) for the search-index budget (contracts/build-budget.md § New: search index): gzipped size ≤ 12 KB, parses with `version` 1 and an `entries` array, every `entries[].href` exists in `dist/`; and for the JS budget constant 18 KB. See them fail.
+- [ ] T055 Implement the index checks and set `BUDGETS.js` in `scripts/check-build.ts` until T054 is green. Run `npm run build && npm run check:build -- --report`, record the real numbers in research.md R8, and if the measured JS is ≤ 12 KB put the constant back to 12 KB in this same task (contracts/build-budget.md).
+- [ ] T056 [P] Extend `tests/unit/health-gate.test.ts` (red first) with the `search-index` kind: 200, `X-Robots-Tag` noindex, body parses with `version` 1 and an `entries` array. See it fail.
+- [ ] T057 Implement the `search-index` kind and its CLI request in `scripts/health-gate.ts` until T056 is green.
+- [ ] T058 [P] Amend `docs/DESIGN.md` §6 (Search row: build-time JSON index and in-house matcher, with the measured reason; Navigation row: palette note) and `docs/PHASES.md` Phase 3 "Plan notes" (no Pagefind, palette not a React island). Do not change statuses yet (T064).
+- [ ] T059 Run the whole [quickstart](quickstart.md) §1–§10, including the Docker run with a free port and a distinct container name (do not stop containers you did not start). Record results and any deviation under this task. Fix what fails, test-first when it is logic.
+- [ ] T060 Run `npm test`, `npm run lint`, `npm run validate`, `npm run build`, `npm run check:build` one last time and list the final counts.
+
+---
+
+## Phase 10: Close-out (needs Carlos's explicit confirmation before each outward step)
+
+- [ ] T061 Ask Carlos for explicit confirmation, then commit in logical groups (conventional commits) and push the branch.
+- [ ] T062 Ask Carlos for explicit confirmation, then open the pull request to `main`; wait for CI. Merge and deploy stay with Carlos.
+- [ ] T063 After the deploy, run the health gate against `https://architecture.cativo.dev` (with Carlos's confirmation) and record the result.
+- [ ] T064 Run `/speckit-converge` and repeat implement/converge until Converged (constitution X), then update `docs/PHASES.md` (Phase 3 status, real numbers) and `docs/TOPICS.md` if any card state changed, and give Carlos the ready-to-paste prompt for the next session (Phase 4), as CLAUDE.md requires.
+
+---
+
+## Dependencies and order
+
+- Phase 1 → Phase 2 → Phase 3 (US1). US2 needs T006 (catalog) and T032 uses the palette button from US1; US3 needs T006, T009; US4 needs T038 (`EntryList`); US5 needs T006; US6 needs T025 (`shell.ts` key wiring). Polish needs all stories.
+- Tests before implementation inside each story (pairs: T003/T004, T005/T006, T007/T008, T010–T013 before T014–T017, T029/T030, T033/T034, T035/T036, T042/T043, T046/T047, T049/T050, T054/T055, T056/T057).
+- `src/scripts/shell.ts` is touched by T025, T051 and T053's menu reuse: do those in order, not in parallel.
+
+## Parallel examples
+
+- After T009: T010, T011, T012, T013 (four test files, no shared code).
+- After T017: T020 and T023 (component and stylesheet) while T018 builds the endpoint.
+- US3 (T038–T041), US4's tests (T042) and US5's tests (T046) can proceed in parallel once T006 and T009 are done, if more than one worker is used; with one worker, follow phase order.
+
+## Implementation strategy
+
+- **MVP**: Phase 1–3 (US1): the palette working from every page. Stop and show Carlos.
+- Then US2 (home), US3 (browse), US4 (path), US5 (radar), US6 (`j`/`k`), polish, close-out. Each phase ends at a checkpoint with `npm test`, lint, validate, build and check:build green.
+- Session split is Carlos's call and is kept in memory, not in this file.
