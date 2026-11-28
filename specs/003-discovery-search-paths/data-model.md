@@ -37,6 +37,7 @@ One planned topic, published or not.
 | `entries` | CatalogEntry[] | in `position` order |
 | `published` | number | count of published entries |
 | `total` | number | count of entries (FR-008) |
+| `label` | string | `"<published> / <total>"`, the text next to the bar (FR-014) |
 | `meter` | string | `domainMeter(published, total)`, the existing text bar (FR-014); text is `published / total` |
 
 **Invariants** (SC-005, SC-006): every topic appears in exactly one DomainSummary; the learning
