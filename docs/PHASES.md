@@ -128,7 +128,7 @@ Readers can find any card in seconds and follow a learning path.
 - Home page at the root, in the approved style: a short hero (what the guide is, who it's for), two entry points (start the learning path; search), a grid of the 13 domains with card counts and progress meters, and a freshness strip (recently reviewed cards and radar changes). It replaces the minimal index from Phase 1.
 Works offline from the static build (no search server).
 ```
-**Plan notes:** Pagefind (official docs), and a palette island loaded with `client:idle`.
+**Plan notes:** no Pagefind (measured: no typo tolerance, see DESIGN D14): a build-time JSON index plus a tested in-house matcher. The palette is a native `<dialog>` with a script loaded when idle, not a React island (React is still deferred).
 
 ---
 

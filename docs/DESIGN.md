@@ -122,9 +122,9 @@ Every card has the same sections in the same order. Validation enforces this.
 |---|---|
 | Framework | **Astro**, latest stable at the time of scaffolding, set up via the official install guide |
 | Content | **MDX** in Astro content collections with **Zod** schemas |
-| Interactivity | **React islands** only where needed: simulator (`client:visible`), palette (`client:idle`), progress. Everything else is static HTML |
-| Navigation | Astro `<ClientRouter />` (View Transitions). Phase 2 persists the tree only (`transition:persist`); the top bar and status line re-render per page because their fields change on every card. The palette is a Phase 3 matter |
-| Search | **Pagefind**, indexed at build time, so there is no search service |
+| Interactivity | **React islands** only where needed: simulator (`client:visible`) and progress. React is not installed yet (deferred since Phase 1). The command palette (Phase 3) is a native `<dialog>` driven by plain TypeScript that loads when the browser is idle. Everything else is static HTML |
+| Navigation | Astro `<ClientRouter />` (View Transitions). Phase 2 persists the tree only (`transition:persist`); the top bar and status line re-render per page because their fields change on every card. The palette's `<dialog>` is rendered again on every page, so its shortcuts are bound once on `document` and its script looks elements up when it needs them (Phase 3) |
+| Search | A **JSON index built at build time** (`/search-index.json`: title, aliases, tags, domain, radar status, URL) and a small in-house matcher with typo tolerance, loaded once when idle so it also works offline. No search service. Pagefind was measured and rejected in Phase 3 (D14) |
 | Styling | **Plain CSS** with the mockup's custom-property tokens, no Tailwind (decided in Phase 2: MDX output carries no classes, so utility classes cannot reach it). Fonts are **self-hosted** through Astro's Fonts API (Geist Mono and Inter, `fontsource` provider): no third-party origin |
 | Progress storage | `ProgressStore` interface → `LocalProgressStore` (localStorage) in v1 |
 | Validation | Schema plus custom validators in CI: required sections, `related` ids exist, staleness report |
@@ -155,6 +155,7 @@ The future Sync phase switches to Astro's Node adapter (static pages stay preren
 | D11 | No backend in v1, but sync-ready | YAGNI now, while the three cheap rules in 6.1 avoid a rewrite later | Building sync now |
 | D12 | spec-kit SDD for code, multi-agent Workflow for content | Code is sequential and shares files. Cards are independent and benefit from parallel draft → verify → review | One approach for everything |
 | D13 | Host `architecture.cativo.dev`, no alias redirect yet | Names the subject, not the working title, so it survives a rename; unambiguous on a `.dev` domain (picked with a naming review on 2026-11-23) | `systems.` (reads as ops), `system-design.` (interview-prep connotation), `arch.` (Arch Linux), `catalog.` (vague); alias redirect deferred (YAGNI) |
+| D14 | Search is an in-house build-time index, not Pagefind | In a measured test Pagefind returned 0 results for `sga`, `distribtued` and `consitency` (prefix and stemming only), while the spec requires typo tolerance; it also ships about 100 KB of script and wasm to search titles, aliases and tags only. One small JSON file works offline with no extra requests. Pagefind can still be added later for full-text search of card bodies | Pagefind alone (drops typo tolerance); Pagefind plus a typo layer (two engines); Fuse.js (a dependency for about 60 lines) |
 
 ## 8. Open questions
 - **Name** of the site. The domain is decided: `architecture.cativo.dev` (D13).
