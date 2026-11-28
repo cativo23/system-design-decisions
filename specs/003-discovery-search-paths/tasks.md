@@ -139,9 +139,9 @@ No new package is installed by this feature.
 
 **Independent Test**: quickstart §4 (radar part).
 
-- [ ] T046 [P] [US5] Write `tests/unit/radar.test.ts` for `radarGroups(publishedCards)` (data-model.md `RadarGroup.status`, `RadarGroup.cards`): always four groups in the order adopt, trial, assess, hold; an empty group is present with `cards: []`; each card appears in exactly one group; cards inside a group are in path order and carry domain name and `reviewed`. See it fail.
-- [ ] T047 [US5] Implement `src/lib/discovery/radar.ts` until T046 is green, per data-model.md `RadarGroup.status` (fixed order adopt, trial, assess, hold) and `RadarGroup.cards` (may be empty).
-- [ ] T048 [US5] Create `src/pages/radar.astro` (`kind="radar"`): the four groups with a heading each, cards as links with domain and reviewed month, and an empty-state sentence in empty groups. Run quickstart §4 for `/radar/` and record it.
+- [X] T046 [P] [US5] Write `tests/unit/radar.test.ts` for `radarGroups(publishedCards)` (data-model.md `RadarGroup.status`, `RadarGroup.cards`): always four groups in the order adopt, trial, assess, hold; an empty group is present with `cards: []`; each card appears in exactly one group; cards inside a group are in path order and carry domain name and `reviewed`. See it fail.
+- [X] T047 [US5] Implement `src/lib/discovery/radar.ts` until T046 is green, per data-model.md `RadarGroup.status` (fixed order adopt, trial, assess, hold) and `RadarGroup.cards` (may be empty).
+- [X] T048 [US5] Create `src/pages/radar.astro` (`kind="radar"`): the four groups with a heading each, cards as links with domain and reviewed month, and an empty-state sentence in empty groups. Run quickstart §4 for `/radar/` and record it. **Result (Chrome, preview build):** four groups ADOPT, TRIAL, ASSESS, HOLD in that order with counts 1, 0, 0, 0; Saga sits under ADOPT with its domain and `reviewed 2026-11`; the three empty groups say "No published card is trial yet." and so on; status line mode `radar`; one `<h1>`. `radarGroups` takes the catalog (not the bare card list the task text said), because path order inside a group needs the topic-list order. I first wrote a one-line meaning under each status and removed it: the project defines no meaning for the four statuses (DESIGN only gives them colours) and the spec does not ask for any. `check:build`: 18 pages within budget.
 
 **Checkpoint**: Show Carlos.
 

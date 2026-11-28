@@ -106,3 +106,18 @@ html[data-js] .search-entry { display: inline-flex; }
 .path-domain h2 a:hover { text-decoration: underline; text-underline-offset: 3px; }
 .path-domain h2 .n { margin-right: 10px; color: var(--accent); font: 0.75rem var(--mono); }
 .path-domain h2 .count { margin-left: auto; color: var(--fg-muted); font: 0.75rem var(--mono); }
+
+/* ---------- radar ---------- */
+.radar-group { margin-top: 32px; max-width: 46rem; }
+.radar-group h2 { display: flex; align-items: center; gap: 12px; margin: 0 0 10px; font-size: 1rem; }
+.radar-group .count { color: var(--fg-muted); font: 0.75rem var(--mono); }
+.radar-list { list-style: none; margin: 0; padding: 0; }
+.radar-list .row { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 14px; min-height: 2.75rem; padding: 6px 8px; border-bottom: 1px solid var(--line); border-radius: 6px; }
+.radar-list .row:hover { background: var(--bg-hover); }
+.radar-list .t { color: var(--fg); font-weight: 500; }
+.radar-list .d { color: var(--fg-muted); font: 0.75rem var(--mono); }
+.radar-list .when { margin-left: auto; color: var(--fg-muted); font: 0.75rem var(--mono); }
+.radar-group .empty { margin: 0; padding: 8px; }
+@media (max-width: 880px) {
+  .radar-list .when { margin-left: 0; }
+}
