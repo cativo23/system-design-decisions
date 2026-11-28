@@ -109,10 +109,10 @@ No new package is installed by this feature.
 
 **Independent Test**: quickstart §4 (catalog and domain part).
 
-- [ ] T038 [P] [US3] Create `src/components/EntryList.astro`: rows of contracts/ui-contract.md § Entry rows (published: link plus radar badge; unpublished: dimmed text, no link, no badge, hidden "not yet available"), driven by `CatalogEntry.published`, `.status` and `.href` (data-model.md `CatalogEntry`).
-- [ ] T039 [US3] Create `src/pages/catalog/index.astro` (`kind="catalog"`): all 13 domains in order, each with `DomainSummary.published` / `.total` and a link to its page (reuse `DomainTile`).
-- [ ] T040 [US3] Create `src/pages/catalog/[domain].astro` (`kind="domain"`, `getStaticPaths` over the 13 `DOMAINS`): the domain's `entries` in `position` order through `EntryList`; the matching tree domain opens (Shell behaviour from T009).
-- [ ] T041 [US3] Run quickstart §4 for `/catalog/` and `/catalog/distributed-data/` and §6 (shell stays put when moving home → catalog → domain → card): record it. Re-run `npm run check:build`.
+- [X] T038 [P] [US3] Create `src/components/EntryList.astro`: rows of contracts/ui-contract.md § Entry rows (published: link plus radar badge; unpublished: dimmed text, no link, no badge, hidden "not yet available"), driven by `CatalogEntry.published`, `.status` and `.href` (data-model.md `CatalogEntry`).
+- [X] T039 [US3] Create `src/pages/catalog/index.astro` (`kind="catalog"`): all 13 domains in order, each with `DomainSummary.published` / `.total` and a link to its page (reuse `DomainTile`).
+- [X] T040 [US3] Create `src/pages/catalog/[domain].astro` (`kind="domain"`, `getStaticPaths` over the 13 `DOMAINS`): the domain's `entries` in `position` order through `EntryList`; the matching tree domain opens (Shell behaviour from T009).
+- [X] T041 [US3] Run quickstart §4 for `/catalog/` and `/catalog/distributed-data/` and §6 (shell stays put when moving home → catalog → domain → card): record it. Re-run `npm run check:build`. **Result (Chrome, preview build):** `/catalog/distributed-data/` lists its 6 entries in topic-list order (Saga with ADOPT as the only link, the other five dimmed with a hidden "not yet available" and no link), says `1 / 6 cards published`, shows `catalog | 05 distributed-data` in the status line and opens its own tree domain. Moving home → `/catalog/` → `/catalog/storage/` → the Saga card → home by router links kept the same tree node, its scroll position (220 px with all 13 domains open) and the open domains (a domain page opens its own and the reader's others stay open), the status line changed per page kind, and there was always exactly one palette dialog; Ctrl+K still opened it afterwards. `check:build`: 16 pages within budget; Saga CSS 6.9 KB of 8, catalog pages about 29–32 KB of HTML. Added `src/lib/discovery/load.ts` so no page repeats the topic and card loading.
 
 **Checkpoint**: Show Carlos.
 

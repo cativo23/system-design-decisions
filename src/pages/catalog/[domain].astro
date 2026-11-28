@@ -1,0 +1,24 @@
+---
+// One domain (FR-009): every planned card in path order, published ones as links, the rest "not yet available".
+import EntryList from '../../components/EntryList.astro';
+import Shell from '../../layouts/Shell.astro';
+import { loadSite } from '../../lib/discovery/load.ts';
+
+export async function getStaticPaths() {
+  const { catalog } = await loadSite();
+  return catalog.map((summary) => ({ params: { domain: summary.domain.slug }, props: { summary } }));
+}
+
+const { summary } = Astro.props;
+const { domain, entries, label } = summary;
+const pad = String(domain.number).padStart(2, '0');
+---
+
+<Shell title={`${domain.name} · Systems Field Guide`} kind="domain" domain={domain.slug}>
+  <div class="page">
+    <div class="prompt"><a class="path" href="/catalog/">~/catalog</a><span class="sym">❯</span><span class="cmd">cd {pad}-{domain.slug}</span></div>
+    <h1>{domain.name}</h1>
+    <p class="lede">{label} cards published.</p>
+    {entries.length > 0 ? <EntryList entries={entries} /> : <p class="empty">No cards are planned in this domain yet.</p>}
+  </div>
+</Shell>

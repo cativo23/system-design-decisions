@@ -1,17 +1,11 @@
 ---
 // The home (FR-013): hero, two entry points, the 13 domains, and the freshness strip. Replaces the Phase 1 index.
-import { getCollection } from 'astro:content';
 import DomainTile from '../components/DomainTile.astro';
 import Shell from '../layouts/Shell.astro';
-import { buildCatalog, toPublished } from '../lib/discovery/catalog.ts';
 import { freshness } from '../lib/discovery/freshness.ts';
-import { parseTopics } from '../lib/topics.ts';
-import topicsMarkdown from '../../docs/TOPICS.md?raw';
+import { loadSite } from '../lib/discovery/load.ts';
 
-// Topic list errors are the validator's job; the page only needs ids, titles and domains.
-const { topics } = parseTopics(topicsMarkdown, 'docs/TOPICS.md');
-const cards = toPublished(await getCollection('cards'));
-const catalog = buildCatalog(topics, cards);
+const { cards, catalog } = await loadSite();
 const recent = freshness(cards);
 ---
 

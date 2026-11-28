@@ -78,3 +78,23 @@ html[data-js] .search-entry { display: inline-flex; }
   .home { padding-block: 28px 96px; }
   .fresh .when { margin-left: 0; }
 }
+
+/* ---------- catalog, domain and path pages ---------- */
+.page { padding-block: 44px 120px; max-width: 62rem; }
+.page .prompt { font: 0.7812rem var(--mono); color: var(--fg-faint); margin-bottom: 14px; }
+.page .prompt .path { color: var(--fg-muted); }
+.page .prompt .sym { color: var(--accent); margin-inline: 8px; }
+.page .prompt .cmd { color: var(--fg-muted); }
+.page h1 { margin: 0 0 14px; font: 600 clamp(1.75rem, 3.5vw, 2.25rem) / 1.15 var(--sans); letter-spacing: -0.02em; }
+.page .lede { margin: 0 0 28px; max-width: 42rem; color: var(--fg-muted); }
+
+.entries-list { list-style: none; margin: 0; padding: 0; max-width: 46rem; }
+.entries-list .row { display: flex; align-items: center; gap: 14px; min-height: 2.75rem; padding: 6px 8px; border-bottom: 1px solid var(--line); border-radius: 6px; }
+.entries-list a.row:hover { background: var(--bg-hover); }
+.entries-list .pos { color: var(--fg-faint); font: 0.75rem var(--mono); }
+.entries-list .t { flex: 1; min-width: 0; color: var(--fg); font-weight: 500; overflow-wrap: anywhere; }
+.entries-list .planned .t { color: var(--fg-faint); font-weight: 400; }
+
+@media (max-width: 880px) {
+  .page { padding-block: 28px 96px; }
+}
