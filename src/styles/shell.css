@@ -64,6 +64,7 @@ article { padding-block: 44px 120px; max-width: 740px; }
 .statusline .st-adopt { color: var(--ok); } .statusline .st-trial { color: var(--info); }
 .statusline .st-assess { color: var(--warn); } .statusline .st-hold { color: var(--bad); }
 .statusline .grow { flex: 1; border-right: 0; }
+.statusline .keys { color: var(--fg-faint); border-right: 0; }
 .statusline .pct { color: var(--fg-muted); border-left: 1px solid var(--line); border-right: 0; padding-right: max(12px, env(safe-area-inset-right, 0px)); }
 
 @media (max-width: 1200px) {

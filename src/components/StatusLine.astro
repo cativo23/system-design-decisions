@@ -5,8 +5,11 @@ import type { StatusFields } from '../lib/discovery/status-fields.ts';
 
 interface Props {
   fields: StatusFields;
+  /** Card pages also have the j / k section keys. */
+  sections?: boolean;
 }
 const { mode, domain, file, status, progress } = Astro.props.fields;
+const { sections = false } = Astro.props;
 ---
 
 <div class="statusline" aria-hidden="true">
@@ -16,5 +19,6 @@ const { mode, domain, file, status, progress } = Astro.props.fields;
   {status && <span class:list={['hide-sm', `st-${status}`]}>● {status}</span>}
   {progress && <span class="hide-sm">{progress}</span>}
   <span class="grow"></span>
+  <span class="keys hide-sm">{sections && 'j / k sections · '}/ search</span>
   <span class="pct" id="sl-pct">top</span>
 </div>

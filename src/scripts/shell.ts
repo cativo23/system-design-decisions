@@ -1,5 +1,5 @@
 // DOM glue only: every decision comes from src/lib/layout/ and src/lib/discovery/. Text and attributes only, no HTML strings.
-import { shouldOpenPalette } from '../lib/discovery/keys.ts';
+import { adjacentSection, reachedSection, shouldHandleSectionKey, shouldOpenPalette } from '../lib/discovery/keys.ts';
 import { nextFocusIndex, nextMenuState, type MenuEvent, type MenuState } from '../lib/layout/menu.ts';
 import { scrollLabel } from '../lib/layout/scroll.ts';
 import { currentSection } from '../lib/layout/toc.ts';
@@ -193,6 +193,47 @@ document.addEventListener('keydown', (e) => {
 
 document.addEventListener('click', (e) => {
   if ((e.target as Element).closest('[data-open-palette]')) openPalette();
+});
+
+// ---------- j / k between the sections of a card (FR-012) ----------
+// Relative to the section the reader has reached (normally the one the table of contents highlights), also after scrolling by hand.
+// Quick presses count from the section already aimed at, not from where a smooth scroll has got to, and the aim also
+// holds when the page cannot scroll further (the last sections never reach the top). Any other input, such as the wheel,
+// a touch, a click, another key or a new page, forgets the aim and goes back to the section that is on screen.
+let aimedAt: string | null = null;
+const forgetAim = () => {
+  aimedAt = null;
+};
+for (const type of ['wheel', 'touchstart', 'pointerdown']) window.addEventListener(type, forgetAim, { passive: true });
+document.addEventListener('astro:page-load', forgetAim);
+
+document.addEventListener('keydown', (e) => {
+  const active = document.activeElement as HTMLElement | null;
+  const links = [...document.querySelectorAll<HTMLAnchorElement>('.toc a[href^="#"]')];
+  const key = shouldHandleSectionKey(
+    e,
+    { tag: active?.tagName ?? '', editable: active?.isContentEditable ?? false },
+    { paletteOpen: (document.getElementById('palette') as HTMLDialogElement | null)?.open ?? false, isCard: links.length > 0 },
+  );
+  if (!key) {
+    if (!['Shift', 'Control', 'Alt', 'Meta'].includes(e.key)) forgetAim();
+    return;
+  }
+  const tops = links.flatMap((a) => {
+    const heading = document.getElementById(a.hash.slice(1));
+    return heading ? [{ id: heading.id, top: heading.getBoundingClientRect().top }] : [];
+  });
+  const atBottom = window.scrollY >= document.documentElement.scrollHeight - window.innerHeight - 2;
+  const reached = reachedSection(tops, READING_LINE, atBottom, window.innerHeight);
+  const target = adjacentSection(
+    tops.map((t) => t.id),
+    aimedAt ?? reached,
+    key,
+  );
+  if (!target) return;
+  const reduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  document.getElementById(target)?.scrollIntoView({ block: 'start', behavior: reduced ? 'instant' : 'smooth' });
+  aimedAt = target;
 });
 
 // A result that navigates leaves no modal open on the next page.

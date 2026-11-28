@@ -56,7 +56,7 @@ const fields = statusFields(kind, {
     {isCard && <Toc />}
   </div>
   <div class="backdrop" hidden></div>
-  <StatusLine fields={fields} />
+  <StatusLine fields={fields} sections={isCard} />
   <script>
     import '../scripts/shell.ts';
   </script>
