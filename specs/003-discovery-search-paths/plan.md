@@ -115,6 +115,7 @@ src/
 │   ├── radar.ts                   # published cards → four fixed groups
 │   ├── freshness.ts               # top 5 by reviewed month, then title
 │   ├── keys.ts                    # shouldOpenPalette, adjacentSection (j/k)
+│   ├── load.ts                    # pages only: reads TOPICS.md and the cards once (added during implementation, so no page repeats it)
 │   ├── palette-state.ts           # open/closed/loading state machine, result cursor
 │   └── status-fields.ts           # status line fields per page kind
 ├── lib/cards/rules.ts             # + order-matches-topics (cross-card rule)

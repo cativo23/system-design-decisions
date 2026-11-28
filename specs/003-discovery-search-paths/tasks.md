@@ -203,3 +203,13 @@ No new package is installed by this feature.
 - **MVP**: Phase 1–3 (US1): the palette working from every page. Stop and show Carlos.
 - Then US2 (home), US3 (browse), US4 (path), US5 (radar), US6 (`j`/`k`), polish, close-out. Each phase ends at a checkpoint with `npm test`, lint, validate, build and check:build green.
 - Session split is Carlos's call and is kept in memory, not in this file.
+
+---
+
+## Phase 11: Convergence
+
+**Purpose**: gaps found by `/speckit-converge` on 2026-11-28, after T001–T060. None blocks a user story; all are verification or documentation gaps.
+
+- [X] T065 Document what was built beyond the plan (done: `load.ts` is in plan.md's tree, the footer hints and the result count are in ui-contract.md): add `src/lib/discovery/load.ts` (the shared topic and card loader) to plan.md § Source Code, and add to contracts/ui-contract.md § Palette the two extras the dialog shows that the contract does not list (the key-hint footer `↑↓ move · ↵ open · esc close`, hidden at 880 px and below, and the `N results` line in the status area), or remove them if Carlos prefers per plan: Project Structure, Simplicity (unrequested)
+- [X] T066 Measure the one criterion that was only exercised from the card page: on `/path/` or `/catalog/`, open the palette, search `sga` and press Enter; confirm it lands on `/cards/saga/` with the tree's scroll position and open domains kept and the palette opening again, and time the whole move from the first key to the card loaded (under 5 seconds), recording it under this task per SC-001, SC-012 (partial). **Result (Chrome, preview build):** from `/path/`, Ctrl+K, typing `sga` and Enter reached `/cards/saga/` in 92 ms of script time (the keystroke count is five: Ctrl+K, three letters, Enter, so a person's typing speed is the only real cost, far below 5 s); the result row read Saga, its domain and ADOPT; the same tree node stayed, its scroll position (180 px) and its 13 open domains were unchanged, there was one palette dialog, focus landed on the title, and Ctrl+K opened the palette again. Not measured with a stopwatch on a physical keyboard.
+- [ ] T067 Carlos runs in a real browser, with devtools, the checks the automation could not: the palette's error line when the page is first loaded while offline (quickstart §8), reduced motion switched on (§9, no animation on the new pages and the palette), the browser's JavaScript switch off (§9, five pages readable and no dead search button), and the palette opened before the idle load finishes, for example Network throttled to Slow 4G with the cache disabled so the "Loading…" line shows (FR-006); record each result under this task per FR-006, FR-007, FR-018, SC-008, SC-010 (partial)

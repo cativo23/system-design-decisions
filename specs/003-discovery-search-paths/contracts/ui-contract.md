@@ -71,6 +71,9 @@ status line's right side on wide screens and hidden on phones (`hide-sm`).
   text nodes. ArrowDown/ArrowUp move the cursor (wrapping), Enter follows the highlighted row's
   link, a click does the same. The highlighted row has `aria-selected="true"` and is the
   input's `aria-activedescendant`.
+- **Also shown** (added during implementation): a footer line `↑↓ move · ↵ open · esc close` (decorative,
+  `aria-hidden`, hidden at 880 px and below where there is no keyboard to speak of), and, when there are
+  results, an `N result(s)` count in the status area so a screen reader hears how many matched.
 - **States** (the `role="status"` line): hint on empty query; "Loading…" while the index is
   not ready; "No cards match “<query>”." (text node) when nothing matches (scenario 6); the
   error line when the index failed.
