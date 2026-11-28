@@ -73,6 +73,14 @@ describe('checkPage: JavaScript budget (gzip ≤ 12 KB)', () => {
     expect(checkPage(page({ head }), assets)).toEqual([expect.stringMatching(/^JavaScript is/)]);
   });
 
+  it('should follow a dynamic import written with a template literal, as the bundler emits it', () => {
+    const assets = {
+      '/_astro/a.js': Buffer.from('window.requestIdleCallback(()=>import(`./b.js`))'),
+      '/_astro/b.js': noise(13000),
+    };
+    expect(checkPage(page({ head }), assets)).toEqual([expect.stringMatching(/^JavaScript is/)]);
+  });
+
   it('should count a chunk once even when imported twice', () => {
     const assets = {
       '/_astro/a.js': Buffer.from('import"./c.js";import"./b.js"'),
@@ -280,3 +288,40 @@ describe('checkPage: structure (contracts/build-budget.md § Structure checks)',
     expect(problems(page({ body }).replace('[hidden]{display:none!important}', ''), { index: true })).toEqual([expect.stringMatching(/\[hidden\]/)]);
   });
 });
+
+describe('checkPage: search palette on shell pages (contracts/build-budget.md § Structure checks)', () => {
+  // A "shell page" is one with the top bar; the Phase 1 index has none and is skipped until the home replaces it.
+  const TRIGGER = '<button type="button" class="search" data-open-palette aria-label="Search"></button>';
+  const DIALOG = '<dialog id="palette"></dialog>';
+  const shell = (parts: { trigger?: string; dialog?: string } = {}) => {
+    const { trigger = TRIGGER, dialog = DIALOG } = parts;
+    const body = `<a class="skip-link" href="#main">Skip to content</a><header class="topbar">${trigger}</header>${dialog}<main id="main"><h1>Saga</h1></main>`;
+    return page({ body });
+  };
+
+  it('should pass a shell page with a live trigger and one palette dialog', () => {
+    expect(checkPage(shell(), {})).toEqual([]);
+  });
+
+  it('should fail when the search trigger is aria-disabled', () => {
+    expect(checkPage(shell({ trigger: TRIGGER.replace('<button ', '<button aria-disabled="true" ') }), {})).toEqual([expect.stringMatching(/search trigger/)]);
+  });
+
+  it('should fail when the search trigger is missing', () => {
+    expect(checkPage(shell({ trigger: '' }), {})).toEqual([expect.stringMatching(/search trigger/)]);
+  });
+
+  it('should fail when the trigger is not a <button>', () => {
+    expect(checkPage(shell({ trigger: '<a class="search" href="#">Search</a>' }), {})).toEqual([expect.stringMatching(/search trigger/)]);
+  });
+
+  it('should fail when the palette dialog is missing, and when there are two', () => {
+    expect(checkPage(shell({ dialog: '' }), {})).toEqual([expect.stringMatching(/exactly one <dialog id="palette">.*found 0/)]);
+    expect(checkPage(shell({ dialog: DIALOG + DIALOG }), {})).toEqual([expect.stringMatching(/exactly one <dialog id="palette">.*found 2/)]);
+  });
+
+  it('should not ask a page without the top bar for the palette', () => {
+    expect(checkPage(page(), {})).toEqual([]);
+  });
+});
+

@@ -107,7 +107,8 @@ function analyze(html: string, assets: Assets, opts: CheckOptions): Analysis {
     const asset = assets[url];
     if (asset === undefined) return missing('script', url);
     js += gzip(asset);
-    for (const [, spec] of text(asset).matchAll(/(?:\bfrom\s*|\bimport\s*\(?\s*)["'](\.{1,2}\/[^"']+)["']/g)) {
+    // The bundler writes dynamic imports with backticks (import(`./x.js`)), so all three quote kinds count.
+    for (const [, spec] of text(asset).matchAll(/(?:\bfrom\s*|\bimport\s*\(?\s*)["'`](\.{1,2}\/[^"'`]+)["'`]/g)) {
       visit(posix.join(posix.dirname(url), bare(spec)));
     }
   };
@@ -165,6 +166,14 @@ function structureProblems(html: string, css: string, { index = false }: CheckOp
     for (const tag of ['nav', 'aside']) {
       if (tags(html, tag).some((a) => (a['aria-label'] ?? '').trim() === '')) problems.push(`a <${tag}> has no aria-label`);
     }
+  }
+
+  // The palette lives in the shell: every page with the top bar needs a live trigger and exactly one dialog.
+  if (/<header\b[^>]*\bclass=["'][^"']*\btopbar\b/i.test(html)) {
+    const trigger = tags(html, 'button').some((b) => /\bsearch\b/.test(b.class ?? '') && b['aria-disabled'] === undefined);
+    if (!trigger) problems.push('no search trigger: expected a <button class="search"> that is not aria-disabled');
+    const dialogs = tags(html, 'dialog').filter((d) => d.id === 'palette').length;
+    if (dialogs !== 1) problems.push(`expected exactly one <dialog id="palette">, found ${dialogs}`);
   }
 
   if (!/\[hidden\]\s*\{[^}]*display\s*:\s*none\s*!important/i.test(css)) {
