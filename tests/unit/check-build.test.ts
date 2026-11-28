@@ -1,6 +1,6 @@
 import { randomBytes } from 'node:crypto';
 import { describe, expect, it } from 'vitest';
-import { BUDGETS, checkPage, formatReport, measurePage } from '../../scripts/check-build.ts';
+import { BUDGETS, checkPage, checkSearchIndex, formatReport, measurePage } from '../../scripts/check-build.ts';
 
 const ROBOTS = '<meta name="robots" content="noindex, nofollow">';
 // The two CSS rules every page must carry (constitution V), and a structure that passes every check.
@@ -323,6 +323,51 @@ describe('checkPage: search palette on shell pages (contracts/build-budget.md §
 
   it('should not ask a page without the top bar for the palette', () => {
     expect(checkPage(page(), {})).toEqual([]);
+  });
+});
+
+describe('checkSearchIndex (contracts/build-budget.md § New: search index)', () => {
+  const PAGES = ['cards/saga/index.html', 'index.html'];
+  const entry = (href: string) => ({ id: 'saga', title: 'Saga', aliases: [], tags: [], domain: 'Distributed data & workflows', status: 'adopt', href });
+  const index = (entries: unknown[] = [entry('/cards/saga/')], version: unknown = 1) => JSON.stringify({ version, entries });
+
+  it('should pass a valid index whose links exist in the build', () => {
+    expect(checkSearchIndex(index(), PAGES)).toEqual([]);
+  });
+
+  it('should pass an empty entry list (nothing published yet)', () => {
+    expect(checkSearchIndex(index([]), PAGES)).toEqual([]);
+  });
+
+  it('should pin the budget at 12 KB gzipped', () => {
+    expect(BUDGETS.searchIndex).toBe(12 * 1024);
+  });
+
+  it('should fail over budget, in the documented message shape', () => {
+    const big = Array.from({ length: 40 }, () => ({ ...entry('/cards/saga/'), title: noise(600).toString('base64') }));
+    expect(checkSearchIndex(index(big), PAGES)).toEqual([
+      expect.stringMatching(new RegExp(`^search-index\\.json: size is \\d+ bytes \\(budget ${BUDGETS.searchIndex}\\)$`)),
+    ]);
+  });
+
+  it('should fail when the file is not JSON', () => {
+    expect(checkSearchIndex('{nope', PAGES)).toEqual([expect.stringMatching(/^search-index\.json: .*JSON/)]);
+  });
+
+  it.each([
+    ['an unknown version', index([entry('/cards/saga/')], 2)],
+    ['no version', JSON.stringify({ entries: [] })],
+    ['entries that are not a list', JSON.stringify({ version: 1, entries: {} })],
+  ])('should fail for %s', (_, text) => {
+    expect(checkSearchIndex(text, PAGES)).toEqual([expect.stringMatching(/^search-index\.json: .*version 1.*entries/)]);
+  });
+
+  it('should fail for a link to a page that is not in the build, naming it', () => {
+    expect(checkSearchIndex(index([entry('/cards/gone/')]), PAGES)).toEqual([expect.stringMatching(/^search-index\.json: .*\/cards\/gone\//)]);
+  });
+
+  it('should report every problem at once', () => {
+    expect(checkSearchIndex(index([entry('/a/'), entry('/b/')]), PAGES)).toHaveLength(2);
   });
 });
 
