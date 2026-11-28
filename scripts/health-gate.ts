@@ -3,7 +3,7 @@
 import { setTimeout as sleep } from 'node:timers/promises';
 import { parseArgs } from 'node:util';
 
-export type Kind = 'version' | 'index' | 'card' | 'font';
+export type Kind = 'version' | 'index' | 'card' | 'font' | 'search-index';
 
 export interface GateResponse {
   status: number;
@@ -12,7 +12,12 @@ export interface GateResponse {
 }
 
 // The font's path is read from the index response, so it has no fixed entry here.
-export const PATHS: Record<Exclude<Kind, 'font'>, string> = { version: '/version.txt', index: '/', card: '/cards/saga/' };
+export const PATHS: Record<Exclude<Kind, 'font'>, string> = {
+  version: '/version.txt',
+  index: '/',
+  card: '/cards/saga/',
+  'search-index': '/search-index.json',
+};
 
 const ROBOTS_META = /<meta\b(?=[^>]*\bname=["']?robots\b)(?=[^>]*\bcontent=["'][^"']*noindex)[^>]*>/i;
 const SAGA_LINK = /\bhref=["']?\/cards\/saga\/(?=["'\s>])/;
@@ -59,6 +64,18 @@ export function checkResponse(kind: Kind, { status, headers, body }: GateRespons
   if (kind === 'font') {
     // Proves the /_astro/ location kept X-Robots-Tag and the long cache (R12, R13).
     if (!/\bimmutable\b/i.test(headers.get('cache-control') ?? '')) fail(`Cache-Control "${headers.get('cache-control') ?? ''}" lacks immutable`);
+    return problems;
+  }
+  if (kind === 'search-index') {
+    // The palette's data: JSON, so no robots meta; it must parse and be the version the palette understands.
+    let data: { version?: unknown; entries?: unknown };
+    try {
+      data = JSON.parse(body);
+    } catch {
+      fail('body is not valid JSON');
+      return problems;
+    }
+    if (data.version !== 1 || !Array.isArray(data.entries)) fail('expected version 1 and an entries list');
     return problems;
   }
   if (!ROBOTS_META.test(body)) fail('robots meta tag with noindex missing');
@@ -115,12 +132,12 @@ async function request(origin: URL, kind: Kind, version: string, path: string = 
 
 async function main() {
   const { origin, version } = readArgs();
-  const kinds: Kind[] = ['version', 'index', 'card'];
+  const kinds: Kind[] = ['version', 'index', 'card', 'search-index'];
   const deadline = Date.now() + DEADLINE_MS;
 
   for (;;) {
     const results = await Promise.all(kinds.map((k) => request(origin, k, version)));
-    // Fourth request: a font file named by the index page (R13).
+    // Fifth request: a font file named by the index page (R13).
     const fontHref = findFontHref(results.find((r) => r.kind === 'index')?.body ?? '');
     if (fontHref === null) results.push({ kind: 'font', path: '/', body: '', ms: 0, problems: ['GET /: no font preload found'] });
     else results.push(await request(origin, 'font', version, new URL(fontHref, origin).pathname));

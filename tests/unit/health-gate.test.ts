@@ -192,3 +192,41 @@ describe('findFontHref', () => {
     expect(findFontHref(html('<p>none</p>'))).toBeNull();
   });
 });
+
+describe('checkResponse: search-index (contracts/build-budget.md § Health gate)', () => {
+  const VALID = JSON.stringify({ version: 1, entries: [{ id: 'saga' }] });
+  const check = (r: ReturnType<typeof res>) => checkResponse('search-index', r, SHA);
+
+  it('should pass with 200, noindex and a version 1 index (the page robots meta does not apply to JSON)', () => {
+    expect(check(res(200, NOINDEX, VALID))).toEqual([]);
+  });
+
+  it('should pass an index with no entries yet', () => {
+    expect(check(res(200, NOINDEX, JSON.stringify({ version: 1, entries: [] })))).toEqual([]);
+  });
+
+  it('should fail on a non-200 status and name the path', () => {
+    expect(check(res(404, NOINDEX, VALID))).toEqual([expect.stringMatching(/^GET \/search-index\.json: .*404/)]);
+  });
+
+  it('should fail on a redirect', () => {
+    expect(check(res(301, { Location: '/x' }, ''))).toEqual([expect.stringMatching(/301/)]);
+  });
+
+  it('should fail when X-Robots-Tag is missing, or lacks noindex', () => {
+    expect(check(res(200, {}, VALID))).toEqual(['GET /search-index.json: X-Robots-Tag missing']);
+    expect(check(res(200, { 'X-Robots-Tag': 'nofollow' }, VALID))).toEqual([expect.stringMatching(/noindex/)]);
+  });
+
+  it('should fail when the body is not JSON (an HTML error page served with 200)', () => {
+    expect(check(res(200, NOINDEX, '<html>oops</html>'))).toEqual([expect.stringMatching(/^GET \/search-index\.json: .*JSON/)]);
+  });
+
+  it.each([
+    ['an unknown version', JSON.stringify({ version: 2, entries: [] })],
+    ['entries that are not a list', JSON.stringify({ version: 1, entries: {} })],
+  ])('should fail for %s', (_, body) => {
+    expect(check(res(200, NOINDEX, body))).toEqual([expect.stringMatching(/version 1.*entries/)]);
+  });
+});
+
