@@ -21,13 +21,6 @@ h1::after { content: ""; display: inline-block; width: 0.42em; height: 0.78em; m
 
 .meta { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 16px; font: 0.7812rem var(--mono); color: var(--fg-faint); margin-bottom: 34px; }
 .meta .tag::before { content: "#"; color: var(--accent); }
-.radar { display: inline-flex; align-items: center; gap: 7px; height: 24px; padding: 0 10px; border-radius: 6px; font: 500 0.7188rem var(--mono); letter-spacing: 0.06em; white-space: nowrap; }
-.radar::before { content: ""; width: 6px; height: 6px; border-radius: 50%; background: currentColor; box-shadow: 0 0 10px currentColor; }
-.radar.adopt { color: var(--ok); background: var(--ok-soft); }
-.radar.trial { color: var(--info); background: var(--info-soft); }
-.radar.assess { color: var(--warn); background: var(--warn-soft); }
-.radar.hold { color: var(--bad); background: var(--bad-soft); }
-.radar.sm { height: 20px; font-size: 0.6562rem; padding: 0 7px; }
 
 /* ---------- headings and prose ---------- */
 h2 { display: flex; align-items: baseline; gap: 10px; font-size: 1.3125rem; letter-spacing: -0.02em; font-weight: 600; margin: 60px 0 14px; scroll-margin-top: 80px; text-wrap: balance; }

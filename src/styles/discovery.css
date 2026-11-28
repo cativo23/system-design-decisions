@@ -1,0 +1,36 @@
+/* Discovery: the command palette now; home, lists and radar join it in later tasks.
+   Text uses only the audited tokens (tests/unit/contrast.test.ts). Animations are covered by the
+   reduced-motion block in global.css. Text is sized in rem (tests/unit/font-units.test.ts). */
+
+kbd { display: inline-block; min-width: 1.5em; padding: 0 6px; border: 1px solid var(--line-strong); border-radius: 4px; background: var(--bg); color: var(--fg-muted); font: 0.6562rem/1.5rem var(--mono); text-align: center; }
+
+/* ---------- palette ---------- */
+dialog.palette { width: min(40rem, calc(100vw - 2rem)); max-height: min(34rem, 80vh); margin: 12vh auto auto; padding: 0; overflow: hidden; display: none; flex-direction: column;
+  background: var(--bg-raised); color: var(--fg); border: 1px solid var(--line-strong); border-radius: 12px; box-shadow: 0 24px 80px rgba(0, 0, 0, 0.6); }
+dialog.palette[open] { display: flex; animation: palette-in 0.12s ease-out; }
+dialog.palette::backdrop { background: rgba(0, 0, 0, 0.55); }
+@keyframes palette-in { from { opacity: 0; transform: translateY(-6px); } }
+
+#palette-input { all: unset; box-sizing: border-box; width: 100%; padding: 16px 18px; border-bottom: 1px solid var(--line); color: var(--fg); font: 0.9375rem var(--mono); }
+#palette-input::placeholder { color: var(--fg-faint); }
+#palette-input:focus-visible { outline: 1px solid var(--accent); outline-offset: -2px; border-radius: 12px 12px 0 0; }
+
+#palette-results { list-style: none; margin: 0; padding: 6px; overflow-y: auto; }
+#palette-results:empty { display: none; }
+#palette-results li a { display: flex; align-items: center; gap: 12px; min-height: 2.75rem; padding: 8px 12px; border-radius: 8px; border-left: 2px solid transparent; }
+#palette-results li[aria-selected="true"] a { background: var(--bg-hover); border-left-color: var(--accent); }
+#palette-results .t { flex: 1; min-width: 0; color: var(--fg); font: 500 0.875rem var(--sans); overflow-wrap: anywhere; }
+#palette-results .d { color: var(--fg-muted); font: 0.7188rem var(--mono); }
+
+#palette-status { margin: 0; padding: 10px 18px; color: var(--fg-muted); font: 0.75rem var(--mono); }
+#palette-status:empty { display: none; }
+.palette-keys { margin: 0; padding: 8px 18px; display: flex; gap: 6px; align-items: center; border-top: 1px solid var(--line); color: var(--fg-faint); font: 0.6875rem var(--mono); }
+
+@media (max-width: 880px) {
+  dialog.palette { margin-top: 8vh; }
+  .palette-keys { display: none; }
+  #palette-results .d { display: none; }
+}
+@media (max-width: 880px) {
+  .search .hint { display: none; }
+}

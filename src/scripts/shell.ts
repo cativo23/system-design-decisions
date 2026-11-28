@@ -1,4 +1,5 @@
-// DOM glue only: every decision comes from src/lib/layout/. Text and attributes only, no HTML strings.
+// DOM glue only: every decision comes from src/lib/layout/ and src/lib/discovery/. Text and attributes only, no HTML strings.
+import { shouldOpenPalette } from '../lib/discovery/keys.ts';
 import { nextFocusIndex, nextMenuState, type MenuEvent, type MenuState } from '../lib/layout/menu.ts';
 import { scrollLabel } from '../lib/layout/scroll.ts';
 import { currentSection } from '../lib/layout/toc.ts';
@@ -66,6 +67,10 @@ function init(navigated: boolean): () => void {
 
   markCurrentCard();
   if (navigated) focusTitle();
+  // The shortcut hint names the key the reader's platform has.
+  if (/Mac|iPhone|iPad/.test(navigator.platform)) {
+    for (const hint of document.querySelectorAll('.search .hint')) hint.textContent = '⌘K';
+  }
 
   return () => {
     window.removeEventListener('scroll', schedule);
@@ -156,6 +161,44 @@ document.addEventListener('keydown', (e) => {
 });
 
 document.addEventListener('astro:before-swap', () => dispatch('navigate'));
+
+// ---------- command palette (research.md R2) ----------
+// The behaviour is a separate chunk, loaded when the browser is idle or on first use. Shortcuts are bound once on
+// `document`, so they keep working after every client-side navigation (FR-022).
+let paletteModule: Promise<typeof import('./palette.ts')> | null = null;
+let paletteLoaded = false;
+const loadPalette = () => (paletteModule ??= import('./palette.ts').then((m) => ((paletteLoaded = true), m)));
+(window.requestIdleCallback ?? ((fn: () => void) => setTimeout(fn, 200)))(() => void loadPalette());
+
+function openPalette() {
+  const dialog = document.getElementById('palette') as HTMLDialogElement | null;
+  if (!dialog || dialog.open || menu === 'open') return;
+  const opener = document.activeElement as HTMLElement | null;
+  if (!paletteLoaded) {
+    // Not loaded yet: show the dialog at once with a loading line rather than doing nothing (FR-006).
+    dialog.showModal();
+    const status = document.getElementById('palette-status');
+    if (status) status.textContent = 'Loading…';
+    document.getElementById('palette-input')?.focus();
+  }
+  void loadPalette().then((m) => m.openPalette(opener));
+}
+
+document.addEventListener('keydown', (e) => {
+  const active = document.activeElement as HTMLElement | null;
+  if (!shouldOpenPalette(e, { tag: active?.tagName ?? '', editable: active?.isContentEditable ?? false })) return;
+  e.preventDefault();
+  openPalette();
+});
+
+document.addEventListener('click', (e) => {
+  if ((e.target as Element).closest('[data-open-palette]')) openPalette();
+});
+
+// A result that navigates leaves no modal open on the next page.
+document.addEventListener('astro:before-swap', () => {
+  (document.getElementById('palette') as HTMLDialogElement | null)?.close();
+});
 window.matchMedia('(min-width: 881px)').addEventListener('change', (e) => e.matches && dispatch('close'));
 
 // Related spotlight: the glow follows the pointer through two custom properties (set via the CSSOM, no HTML).

@@ -1,15 +1,15 @@
 ---
-// Top bar: brand link and a search trigger. Search arrives in Phase 3, so the trigger is
-// focusable and announced as unavailable (aria-disabled, not `disabled`); activating it does nothing.
-// No navigation links yet (FR-002, FR-031).
+// Top bar: brand link and the search trigger. The trigger opens the palette (shell.ts) and is hidden until
+// scripts run, like the phone menu button, so with scripts blocked there is no dead button (SC-010).
+// The three page links arrive with the pages themselves (T053).
 ---
 
 <header class="topbar">
   <div class="topbar-inner">
     <button type="button" class="menu-btn" aria-expanded="false" aria-controls="tree" aria-label="Open catalog">≡</button>
     <a class="brand" href="/"><span class="p">❯</span>systems-field-guide<span class="caret" aria-hidden="true"></span></a>
-    <button type="button" class="search" aria-disabled="true" aria-label="Search (not available yet)">
-      <span class="slash" aria-hidden="true">/</span> search
+    <button type="button" class="search" data-open-palette aria-haspopup="dialog" aria-keyshortcuts="Control+K Meta+K /" aria-label="Search">
+      <span class="slash" aria-hidden="true">/</span> search <kbd class="hint hide-sm" aria-hidden="true">Ctrl K</kbd>
     </button>
   </div>
 </header>
